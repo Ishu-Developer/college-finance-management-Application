@@ -16,3 +16,7 @@ author - Ishu
 6. bin/ – Compiled binaries
 <br>
 7. build/ – Temporary build files (for cmake, make etc.)
+<br>
+8.Makefile-	Makefile banata hai (build instructions ke liye, especially C/C++)
+<br>
+9.gitignore- .gitignore file banata hai (Git ko batata hai kya ignore karna hai)
