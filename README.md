@@ -3,23 +3,47 @@ A project based on Application Development using C language an Unified Software 
 <br>
 author - Ishu 
 <br>
-1. include/ – Header files (C/C++ projects)
-<br>
-2. src/ – Source code files
-<br>
-3. ui/ – User interface files (HTML/CSS/JS ya GUI code)
-<br>
-4. data/ – Input/output data files, CSVs etc.
-<br>
-5. docs/ – Documentation
-<br>
-6. bin/ – Compiled binaries
-<br>
-7. build/ – Temporary build files (for cmake, make etc.)
-<br>
-8.Makefile-	Makefile banata hai (build instructions ke liye, especially C/C++)
-<br>
-9.gitignore- .gitignore file banata hai (Git ko batata hai kya ignore karna hai)
+college-finance-management/
+├── src/
+│   ├── main.c
+│   ├── database/
+│   │   ├── db_init.c
+│   │   ├── db_student.c
+│   │   ├── db_employee.c
+│   │   ├── db_fee.c
+│   │   └── db_accounts.c
+│   ├── ui/
+│   │   ├── student_ui.c
+│   │   ├── employee_ui.c
+│   │   ├── fee_ui.c
+│   │   ├── accounts_ui.c
+│   │   ├── payroll_ui.c
+│   │   └── dashboard_ui.c
+│   ├── tally/
+│   │   ├── tally_sync.c
+│   │   └── tally_xml_handler.c
+│   ├── reports/
+│   │   ├── pdf_generator.c
+│   │   └── receipt_generator.c
+│   └── utils/
+│       ├── logger.c
+│       └── validators.c
+├── include/
+│   ├── database.h
+│   ├── student_ui.h
+│   ├── employee_ui.h
+│   ├── fee_ui.h
+│   ├── accounts_ui.h
+│   ├── payroll_ui.h
+│   ├── tally_sync.h
+│   └── pdf_generator.h
+├── resources/
+│   ├── glade/
+│   │   └── main_window.glade
+│   └── icons/
+├── Makefile
+├── .gitignore
+└── README.md
 
 
 Main Window (850x600)
@@ -38,3 +62,16 @@ Main Window (850x600)
     ├── Tab 2: Fee Module
     ├── Tab 3: Accounts Module
     └── Tab 4: Payroll Module
+
+┌─────────────────────────────────────────────────────────────┐
+│ [SIDEBAR]              │   [NOTEBOOK SELECTED PAGE]         │
+│ ───────────────────────┼────────────────────────────────────│
+│ 📊 Dashboard           │ ┌───────────────────────────────┐  │
+│ 👨‍🎓 Student Mgmt  <-- │ │ Student Management           │  │
+│ 👨‍💼 Employee Mgmt      │ ├───────────────────────────────┤  │
+│ 💰 Fee Management       │ │ [Add] [Edit] [Delete] [Refresh]│
+│ 📈 Accounts             │ │                               │
+│ 💵 Payroll              │ │ ┌────────────────────────────┐│
+│                        │ │ │ Student List/Table/Grid    ││
+│                        │ │ └────────────────────────────┘│
+└────────────────────────┴─┴────────────────────────────────┘
