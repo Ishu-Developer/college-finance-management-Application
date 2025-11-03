@@ -1,8 +1,8 @@
 #include <gtk/gtk.h>
 #include "../include/database.h"
-#include "../include/student.h"
-#include "../include/employee.h"
-#include "../include/fee.h"
+#include "../include/student_ui.h"
+#include "../include/employee_ui.h"
+#include "../include/fee_ui.h"
 
 // Main widgets
 GtkWidget *main_window;

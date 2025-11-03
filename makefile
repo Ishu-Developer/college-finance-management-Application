@@ -1,32 +1,27 @@
+# Compiler settings
 CC = gcc
 CFLAGS = -Wall -Wextra -I./include `pkg-config --cflags gtk+-3.0`
 LDFLAGS = `pkg-config --libs gtk+-3.0` -lsqlite3
 
-SRC_DIR = src
-BUILD_DIR = build
-BIN_DIR = bin
-
 # Source files
-SOURCES = $(wildcard $(SRC_DIR)/*.c)
-OBJECTS = $(SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
-TARGET = $(BIN_DIR)/college_finance
+SOURCES = src/main.c src/database/db_init.c
 
-all: directories $(TARGET)
+# Object files
+OBJECTS = build/main.o build/db_init.o
 
-directories:
-	@mkdir -p $(BUILD_DIR) $(BIN_DIR) data
+# Targets
+all: bin/college_finance
 
-$(TARGET): $(OBJECTS)
-	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
-	@echo "Build complete! Run with: ./$(TARGET)"
+bin/college_finance: $(OBJECTS)
+	$(CC) $(OBJECTS) -o bin/college_finance $(LDFLAGS)
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) -c $< -o $@
+build/main.o: src/main.c
+	$(CC) $(CFLAGS) -c src/main.c -o build/main.o
+
+build/db_init.o: src/database/db_init.c
+	$(CC) $(CFLAGS) -c src/database/db_init.c -o build/db_init.o
 
 clean:
-	rm -rf $(BUILD_DIR) $(BIN_DIR)
+	rm -rf build bin
 
-run: $(TARGET)
-	./$(TARGET)
-
-.PHONY: all clean run directories
+.PHONY: all clean
