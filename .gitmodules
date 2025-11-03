@@ -1,6 +1,0 @@
-[submodule "include"]
-	path = include
-	url = https://github.com/Ishu-Developer/include.git
-[submodule "src"]
-	path = src
-	url = https://github.com/Ishu-Developer/src.git
