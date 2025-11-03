@@ -193,7 +193,7 @@ void create_main_window() {
     GtkWidget *footer = gtk_label_new(NULL);
     gtk_label_set_markup(GTK_LABEL(footer),
         "<span color='#888888' size='small'>"
-        "<i>College Finance Management System v1.0 | Developed by Ishu | Phase 1 Day 1 Setup</i>"
+        "<i>College Finance Management System v1.0 | Developed by Ishu </i>"
         "</span>");
     gtk_widget_set_halign(footer, GTK_ALIGN_CENTER);
     gtk_widget_set_margin_top(footer, 10);
