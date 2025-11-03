@@ -1,6 +1,6 @@
 /**
  * @file db_init.c
- * @brief Database initialization, table creation, and global connection management
+ * @brief Database initialization and table creation
  */
 
 #include <sqlite3.h>
@@ -15,7 +15,6 @@ static char db_error_msg[512] = {0};
 
 /**
  * @brief Initialize database connection
- * @return 1 on success, 0 on failure
  */
 int db_init() {
     int rc = sqlite3_open("college_finance.db", &db);
@@ -23,7 +22,7 @@ int db_init() {
     if (rc != SQLITE_OK) {
         snprintf(db_error_msg, sizeof(db_error_msg), 
                 "Cannot open database: %s", sqlite3_errmsg(db));
-        fprintf(stderr, "[ERROR] %s\n", db_error_msg);
+        fprintf(stderr, "%s\n", db_error_msg);
         return 0;
     }
     
@@ -33,15 +32,13 @@ int db_init() {
 
 /**
  * @brief Get last error message
- * @return Error message string
  */
 const char* db_get_error() {
     return db_error_msg;
 }
 
 /**
- * @brief Create all required tables in database
- * @return 1 on success, 0 on failure
+ * @brief Create all required tables
  */
 int db_create_tables() {
     if (db == NULL) {
