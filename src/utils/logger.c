@@ -1,12 +1,21 @@
-#ifndef EMPLOYEE_UI_H
-#define EMPLOYEE_UI_H
+/**
+ * @file src/utils/logger.c
+ * @brief Logging utility
+ */
 
-#include <gtk/gtk.h>
+#include <stdio.h>
+#include <time.h>
 
-void create_employee_ui(GtkWidget *container);
-void refresh_employee_list();
-void on_add_employee_clicked(GtkButton *button, gpointer user_data);
-void on_edit_employee_clicked(GtkButton *button, gpointer user_data);
-void on_delete_employee_clicked(GtkButton *button, gpointer user_data);
+void log_info(const char *message) {
+    printf("[INFO] %s\n", message);
+}
 
-#endif
+void log_error(const char *message) {
+    fprintf(stderr, "[ERROR] %s\n", message);
+}
+
+void log_debug(const char *message) {
+    #ifdef DEBUG
+    printf("[DEBUG] %s\n", message);
+    #endif
+}

@@ -1,30 +1,31 @@
 /**
- * @file employee_ui.c
- * @brief Employee Management UI Implementation (Phase 2)
+ * @file src/ui/employee_ui.c
+ * @brief Employee Management UI Module
  */
 
 #include <gtk/gtk.h>
-#include "../include/database.h"
-#include "../include/employee_ui.h"
+#include <stdio.h>
+#include "../../include/employee_ui.h"
 
+/**
+ * @brief Create and setup employee management UI
+ */
 void create_employee_ui(GtkWidget *container) {
-    GtkWidget *label = gtk_label_new("Employee Management Module - Coming Soon in Phase 2");
-    gtk_container_add(GTK_CONTAINER(container), label);
-    gtk_widget_show_all(container);
-}
+    printf("[INFO] Creating Employee Management UI\n");
 
-void refresh_employee_list() {
-    // To be implemented in Phase 2
-}
+    // Title
+    GtkWidget *title = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(title),
+        "<span font='16' weight='bold'>👨‍💼 Employee Management</span>");
+    gtk_box_pack_start(GTK_BOX(container), title, FALSE, FALSE, 10);
 
-void on_add_employee_clicked(GtkButton *button, gpointer user_data) {
-    // To be implemented in Phase 2
-}
-
-void on_edit_employee_clicked(GtkButton *button, gpointer user_data) {
-    // To be implemented in Phase 2
-}
-
-void on_delete_employee_clicked(GtkButton *button, gpointer user_data) {
-    // To be implemented in Phase 2
+    // Placeholder
+    GtkWidget *label = gtk_label_new(
+        "Employee Management Features:\n"
+        "• Add/Edit/Delete Employees\n"
+        "• Manage Employee Details\n"
+        "• Track Employment History\n"
+        "• Salary Information\n"
+        "\n(Coming Soon - Phase 1 Days 2-5)");
+    gtk_box_pack_start(GTK_BOX(container), label, TRUE, TRUE, 20);
 }

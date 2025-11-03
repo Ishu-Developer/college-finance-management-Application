@@ -1,0 +1,23 @@
+# Compiled files
+*.o
+*.a
+*.so
+*.exe
+*.dll
+
+# Build directories
+bin/
+build/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE files
+.vscode/settings.json
+.vscode/c_cpp_properties.json
+
+# OS files
+.DS_Store
+Thumbs.db

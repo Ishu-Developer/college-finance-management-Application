@@ -1,39 +1,31 @@
 /**
- * @file student_ui.c
- * @brief Student Management UI Implementation (Phase 2)
+ * @file src/ui/student_ui.c
+ * @brief Student Management UI Module
  */
 
 #include <gtk/gtk.h>
 #include <stdio.h>
-#include "../include/database.h"
-#include "../include/student_ui.h"
+#include "../../include/student_ui.h"
 
-// Global UI widgets
-static GtkWidget *student_treeview;
-static GtkListStore *student_store;
-
+/**
+ * @brief Create and setup student management UI
+ */
 void create_student_ui(GtkWidget *container) {
-    GtkWidget *label = gtk_label_new("Student Management Module - Coming Soon in Phase 2");
-    gtk_container_add(GTK_CONTAINER(container), label);
-    gtk_widget_show_all(container);
-}
+    printf("[INFO] Creating Student Management UI\n");
 
-void refresh_student_list() {
-    // To be implemented in Phase 2
-}
+    // Title
+    GtkWidget *title = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(title),
+        "<span font='16' weight='bold'>👨‍🎓 Student Management</span>");
+    gtk_box_pack_start(GTK_BOX(container), title, FALSE, FALSE, 10);
 
-void on_add_student_clicked(GtkButton *button, gpointer user_data) {
-    // To be implemented in Phase 2
-}
-
-void on_edit_student_clicked(GtkButton *button, gpointer user_data) {
-    // To be implemented in Phase 2
-}
-
-void on_delete_student_clicked(GtkButton *button, gpointer user_data) {
-    // To be implemented in Phase 2
-}
-
-void on_search_student_clicked(GtkButton *button, gpointer user_data) {
-    // To be implemented in Phase 2
+    // Placeholder
+    GtkWidget *label = gtk_label_new(
+        "Student Management Features:\n"
+        "• Add/Edit/Delete Students\n"
+        "• Search by Roll No or Name\n"
+        "• View Student Details\n"
+        "• Track Student History\n"
+        "\n(Coming Soon - Phase 1 Days 2-5)");
+    gtk_box_pack_start(GTK_BOX(container), label, TRUE, TRUE, 20);
 }

@@ -10,10 +10,10 @@
 #include <gtk/gtk.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "include/database.h"
-#include "include/student_ui.h"
-#include "include/fee_ui.h"
-#include "include/employee_ui.h"
+#include "../include/database.h"
+#include "../include/student_ui.h"
+#include "../include/fee_ui.h"
+#include "../include/employee_ui.h"
 
 // Global widgets
 GtkWidget *main_window;
@@ -28,6 +28,7 @@ GtkWidget *sidebar_buttons[6];
  * @brief Callback for sidebar button clicks - switches notebook page
  */
 void on_sidebar_button_clicked(GtkButton *button, gpointer user_data) {
+    (void)button;  // Mark unused parameter
     int page_num = GPOINTER_TO_INT(user_data);
     gtk_notebook_set_current_page(GTK_NOTEBOOK(content_notebook), page_num);
     printf("[INFO] Switched to module page %d\n", page_num);
@@ -37,6 +38,8 @@ void on_sidebar_button_clicked(GtkButton *button, gpointer user_data) {
  * @brief Callback for exit button - close application
  */
 void on_exit_clicked(GtkButton *button, gpointer user_data) {
+    (void)button;        // Mark unused parameter
+    (void)user_data;     // Mark unused parameter
     printf("[INFO] Exit button clicked - shutting down\n");
     gtk_main_quit();
 }
@@ -45,6 +48,8 @@ void on_exit_clicked(GtkButton *button, gpointer user_data) {
  * @brief Callback when window is destroyed
  */
 void on_window_destroy(GtkWidget *widget, gpointer data) {
+    (void)widget;
+    (void)data;
     printf("[INFO] Main window destroyed\n");
     gtk_main_quit();
 }
@@ -60,7 +65,7 @@ void create_main_window() {
     // Create main window
     main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(main_window),
-        "Financial Management Solution for College - Accountant");
+        "Financial Management Solution for College ");
     gtk_window_set_default_size(GTK_WINDOW(main_window), 1200, 700);
     gtk_window_set_position(GTK_WINDOW(main_window), GTK_WIN_POS_CENTER);
     
