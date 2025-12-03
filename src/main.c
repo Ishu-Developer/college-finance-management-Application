@@ -1,13 +1,5 @@
-/**
- * @file main.c
- * @brief College Finance Management System - Main Entry Point
- * 
- * This is a comprehensive financial management solution for colleges,
- * consolidating student fee management, employee payroll, and accounting
- * into a single GTK desktop application.
- */
-
 #include <gtk/gtk.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "../include/database.h"
@@ -20,13 +12,6 @@ GtkWidget *main_window;
 GtkWidget *content_notebook;
 GtkWidget *sidebar_buttons[6];
 
-// ============================================================================
-// CALLBACK FUNCTIONS
-// ============================================================================
-
-/**
- * @brief Callback for sidebar button clicks - switches notebook page
- */
 void on_sidebar_button_clicked(GtkButton *button, gpointer user_data) {
     (void)button;  // Mark unused parameter
     int page_num = GPOINTER_TO_INT(user_data);
@@ -34,9 +19,7 @@ void on_sidebar_button_clicked(GtkButton *button, gpointer user_data) {
     printf("[INFO] Switched to module page %d\n", page_num);
 }
 
-/**
- * @brief Callback for exit button - close application
- */
+
 void on_exit_clicked(GtkButton *button, gpointer user_data) {
     (void)button;        // Mark unused parameter
     (void)user_data;     // Mark unused parameter
@@ -44,9 +27,7 @@ void on_exit_clicked(GtkButton *button, gpointer user_data) {
     gtk_main_quit();
 }
 
-/**
- * @brief Callback when window is destroyed
- */
+
 void on_window_destroy(GtkWidget *widget, gpointer data) {
     (void)widget;
     (void)data;
@@ -54,13 +35,6 @@ void on_window_destroy(GtkWidget *widget, gpointer data) {
     gtk_main_quit();
 }
 
-// ============================================================================
-// MAIN UI CREATION
-// ============================================================================
-
-/**
- * @brief Create and setup the main application window
- */
 void create_main_window() {
     // Create main window
     main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -75,10 +49,7 @@ void create_main_window() {
     GtkWidget *main_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_add(GTK_CONTAINER(main_window), main_box);
 
-    // =========================================================================
-    // HEADER SECTION
-    // =========================================================================
-
+    
     // Title label
     GtkWidget *title_label = gtk_label_new(NULL);
     gtk_label_set_markup(GTK_LABEL(title_label),
@@ -91,30 +62,24 @@ void create_main_window() {
     // Subtitle label
     GtkWidget *subtitle_label = gtk_label_new(NULL);
     gtk_label_set_markup(GTK_LABEL(subtitle_label),
-        "<span font='12' style='italic' color='#666666'>"
+        "<span font='12' style='italic' color='#af4065ff'>"
         "L.D.A.H Rajkiya Engineering College Mainpuri</span>");
     gtk_widget_set_halign(subtitle_label, GTK_ALIGN_CENTER);
     gtk_widget_set_margin_bottom(subtitle_label, 10);
     gtk_box_pack_start(GTK_BOX(main_box), subtitle_label, FALSE, FALSE, 0);
 
-    // =========================================================================
-    // MAIN CONTENT AREA (Sidebar + Notebook)
-    // =========================================================================
-
+    
     GtkWidget *content_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_box_pack_start(GTK_BOX(main_box), content_box, TRUE, TRUE, 0);
 
-    // =====================================================================
-    // SIDEBAR (Left)
-    // =====================================================================
-
+    
     GtkWidget *sidebar = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_widget_set_size_request(sidebar, 200, -1);
     
     // Add background color to sidebar (optional)
     GtkCssProvider *css_provider = gtk_css_provider_new();
     gtk_css_provider_load_from_data(css_provider,
-        "GtkBox#sidebar { background-color: #f0f0f0; }", -1, NULL);
+        "GtkBox#sidebar { background-color: #757272ff; }", -1, NULL);
     GtkStyleContext *context = gtk_widget_get_style_context(sidebar);
     gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(css_provider),
         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
@@ -213,8 +178,8 @@ void create_main_window() {
 int main(int argc, char *argv[]) {
     printf("\n");
     printf("╔════════════════════════════════════════════════════════════════╗\n");
-    printf("║   College Finance Management System - Phase 1 Day 1 Setup      ║\n");
-    printf("║   L.D.A.H Rajkiya Engineering College Mainpuri                 ║\n");
+    printf("║                   College Finance Management System            ║\n");
+    printf("║               L.D.A.H Rajkiya Engineering College Mainpuri     ║\n");
     printf("╚════════════════════════════════════════════════════════════════╝\n");
     printf("\n");
 
@@ -223,14 +188,6 @@ int main(int argc, char *argv[]) {
     if (!db_init()) {
         fprintf(stderr, "[ERROR] Failed to initialize database\n");
         fprintf(stderr, "[ERROR] %s\n", db_get_error());
-        return 1;
-    }
-
-    printf("[INFO] Creating database tables...\n");
-    if (!db_create_tables()) {
-        fprintf(stderr, "[ERROR] Failed to create database tables\n");
-        fprintf(stderr, "[ERROR] %s\n", db_get_error());
-        db_close();
         return 1;
     }
 

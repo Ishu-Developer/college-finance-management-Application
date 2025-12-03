@@ -1,23 +1,9 @@
-# Makefile for College Finance Management System
-# Development Environment: MSYS2/MinGW64 on Windows
-# Compiler: GCC (UCRT64)
-# Last Updated: November 3, 2025
-
-# ============================================================================
-# COMPILER AND FLAGS
-# ============================================================================
-
 CC = gcc
 CFLAGS = -Wall -Wextra -O2 -I./include
 CFLAGS += $(shell pkg-config --cflags gtk+-3.0 sqlite3)
 
 LDFLAGS = $(shell pkg-config --libs gtk+-3.0 sqlite3)
 
-# ============================================================================
-# SOURCE FILES AND OBJECTS
-# ============================================================================
-
-# All source files
 SOURCES = \
 	src/main.c \
 	src/database/db_init.c \
@@ -43,9 +29,6 @@ BIN_DIR = bin
 # Target executable
 TARGET = $(BIN_DIR)/college_finance
 
-# ============================================================================
-# BUILD TARGETS
-# ============================================================================
 
 # Default target
 all: $(TARGET)
@@ -62,10 +45,6 @@ $(TARGET): $(OBJECTS)
 	@mkdir -p $(BUILD_DIR)
 	@echo "[COMPILING] $<"
 	$(CC) $(CFLAGS) -c $< -o $@
-
-# ============================================================================
-# PHONY TARGETS (Don't represent actual files)
-# ============================================================================
 
 .PHONY: clean distclean run debug help install-deps check info
 
