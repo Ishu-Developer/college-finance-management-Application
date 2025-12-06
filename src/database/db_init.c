@@ -1,8 +1,3 @@
-/**
- * @file db_init.c
- * @brief Database initialization and table creation
- */
-
 #include <sqlite3.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,9 +8,6 @@
 sqlite3 *db = NULL;
 static char db_error_msg[512] = {0};
 
-/**
- * @brief Initialize database connection
- */
 int db_init() {
     int rc = sqlite3_open("college_finance.db", &db);
     
@@ -30,16 +22,10 @@ int db_init() {
     return 1;
 }
 
-/**
- * @brief Get last error message
- */
 const char* db_get_error() {
     return db_error_msg;
 }
 
-/**
- * @brief Create all required tables
- */
 int db_create_tables() {
     if (db == NULL) {
         fprintf(stderr, "[ERROR] Database not initialized\n");

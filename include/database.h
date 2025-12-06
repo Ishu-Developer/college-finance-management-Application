@@ -65,10 +65,6 @@ int db_get_student_count();
 #ifndef FEE_STRUCTURES_DEFINED
 #define FEE_STRUCTURES_DEFINED
 
-/**
- * @struct Fee
- * @brief Fee information structure
- */
 typedef struct {
     int fee_id;
     int student_id;
@@ -85,11 +81,6 @@ typedef struct {
     char created_at[30];
 } Fee;
 
-
-/**
- * @struct StudentIDCard
- * @brief Student information for ID card display
- */
 typedef struct {
     int student_id;
     char roll_no[20];
@@ -98,7 +89,7 @@ typedef struct {
     char branch[20];
     int semester;
     char gender[15];
-    char mobile[15];
+    char mobile[10];
     char email[100];
     char photo_path[500];
 } StudentIDCard;
@@ -130,50 +121,17 @@ int db_add_fee(const char *roll_no, const char *fee_type, double amount, const c
 sqlite3_stmt* db_get_all_fees();
 
 
-/**
- * @brief Get fees by roll number
- * @param roll_no Student roll number
- * @return SQLite statement with matching fees
- */
 sqlite3_stmt* db_get_fees_by_rollno(const char *roll_no);
 
 
-/**
- * @brief Get student details for ID card
- * @param roll_no Student roll number
- * @param card Student ID card structure
- * @return 1 if found, 0 if not found
- */
 int db_get_student_for_card(const char *roll_no, StudentIDCard *card);
 
 
-/**
- * @brief Record payment for a fee
- * @param fee_id Fee ID
- * @param amount_paid Amount paid
- * @param payment_date Payment date
- * @return 1 on success, -1 on failure
- */
 int db_record_payment(int fee_id, double amount_paid, const char *payment_date);
 
-
-/**
- * @brief Update fee status
- * @param fee_id Fee ID
- * @param status New status (Pending, Partial, Paid)
- * @return 1 on success, -1 on failure
- */
 int db_update_fee_status(int fee_id, const char *status);
 
 
-/**
- * @brief Get total fees and dues for a student
- * @param roll_no Student roll number
- * @param total_amount Total amount
- * @param total_paid Total paid
- * @param total_due Total due
- * @return 1 if found, 0 otherwise
- */
 int db_get_student_fee_summary(const char *roll_no, double *total_amount, 
                                double *total_paid, double *total_due);
 

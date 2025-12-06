@@ -2,9 +2,6 @@
 #include <ctype.h>
 #include "../../include/validators.h"
 
-/**
- * @brief Validate roll number format
- */
 int validate_roll_no(const char *roll_no) {
     if (roll_no == NULL || strlen(roll_no) == 0) {
         return 0;  // Empty roll number
@@ -19,10 +16,6 @@ int validate_roll_no(const char *roll_no) {
     }
     return 1;
 }
-
-/**
- * @brief Validate name format
- */
 int validate_name(const char *name) {
     if (name == NULL || strlen(name) == 0) {
         return 0;  // Empty name
@@ -38,9 +31,6 @@ int validate_name(const char *name) {
     return 1;
 }
 
-/**
- * @brief Validate email format
- */
 int validate_email(const char *email) {
     if (email == NULL || strlen(email) == 0) {
         return 0;  // Empty email
@@ -57,9 +47,6 @@ int validate_email(const char *email) {
     return 1;
 }
 
-/**
- * @brief Validate mobile number
- */
 int validate_mobile(const char *mobile) {
     if (mobile == NULL || strlen(mobile) == 0) {
         return 0;  // Empty mobile
@@ -67,7 +54,7 @@ int validate_mobile(const char *mobile) {
     
     // Mobile should contain only digits
     size_t len = strlen(mobile);
-    if (len < 10 || len > 15) {
+    if (len < 10 || len > 10) {
         return 0;  // Invalid length
     }
     
@@ -80,16 +67,10 @@ int validate_mobile(const char *mobile) {
     return 1;
 }
 
-/**
- * @brief Validate amount
- */
 int validate_amount(double amount) {
     return amount > 0;
 }
 
-/**
- * @brief Validate date format (YYYY-MM-DD)
- */
 int validate_date(const char *date) {
     if (date == NULL || strlen(date) != 10) {
         return 0;  // Invalid format
