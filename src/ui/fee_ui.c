@@ -13,9 +13,6 @@ static gboolean card_flipped = FALSE;
 static GtkWidget *card_front = NULL;
 static GtkWidget *card_back = NULL;
 
-/**
- * @brief Refresh fee table display
- */
 void refresh_fee_table() {
     printf("[INFO] Refreshing fee table\n");
     
@@ -71,9 +68,6 @@ void refresh_fee_table() {
     printf("[INFO] Loaded %d fees\n", count);
 }
 
-/**
- * @brief Create student ID card front side
- */
 GtkWidget* create_card_front() {
     GtkWidget *card_frame = gtk_frame_new(NULL);
     gtk_widget_set_size_request(card_frame, 280, 380);
@@ -104,29 +98,24 @@ GtkWidget* create_card_front() {
     snprintf(details_text, sizeof(details_text),
         "<b>STUDENT DETAIL</b>\n"
         "<b>Name:</b> %s\n"
-        "<b>Roll NO:</b> %s\n"
+        "<b>Roll NO:</b> %d\n"
         "<b>COURSE:</b> B.Tech\n"
-        "<b>Branch:</b> %s\n"
-        "<b>Semester:</b> %d",
+        "<b>Branch:</b> %s\n",
         current_student.name,
         current_student.roll_no,
-        current_student.branch,
-        current_student.semester);
+        current_student.branch);
     gtk_label_set_markup(GTK_LABEL(details), details_text);
     gtk_label_set_justify(GTK_LABEL(details), GTK_JUSTIFY_LEFT);
     gtk_box_pack_start(GTK_BOX(card_box), details, FALSE, FALSE, 0);
     
     // Principal signature area
-    GtkWidget *signature = gtk_label_new("________________\nPrincipal");
+    GtkWidget *signature = gtk_label_new("Principal");
     gtk_label_set_justify(GTK_LABEL(signature), GTK_JUSTIFY_CENTER);
-    gtk_box_pack_end(GTK_BOX(card_box), signature, FALSE, FALSE, 0);
+    gtk_box_pack_end(GTK_BOX(card_box), signature, FALSE, TRUE, 0);
     
     return card_frame;
 }
 
-/**
- * @brief Create student ID card back side
- */
 GtkWidget* create_card_back() {
     GtkWidget *card_frame = gtk_frame_new(NULL);
     gtk_widget_set_size_request(card_frame, 280, 380);
@@ -173,9 +162,6 @@ GtkWidget* create_card_back() {
     return card_frame;
 }
 
-/**
- * @brief Handle card flip effect
- */
 void on_card_clicked(GtkGestureMultiPress *gesture, gint n_press, gdouble x, gdouble y, gpointer user_data) {
     (void)gesture;
     (void)n_press;
@@ -195,9 +181,6 @@ void on_card_clicked(GtkGestureMultiPress *gesture, gint n_press, gdouble x, gdo
     }
 }
 
-/**
- * @brief Refresh student card display
- */
 void refresh_student_card() {
     printf("[INFO] Refreshing student card\n");
     
@@ -239,9 +222,6 @@ void refresh_student_card() {
     printf("[INFO] Student card loaded for: %s\n", current_student.name);
 }
 
-/**
- * @brief Handle search student button
- */
 void on_search_student_fee_clicked(GtkButton *button, gpointer user_data) {
     (void)button;
     (void)user_data;
@@ -279,7 +259,7 @@ void on_search_student_fee_clicked(GtkButton *button, gpointer user_data) {
             printf("[INFO] Searching for student: %s\n", roll_no);
             
             // Get student details
-            if (db_get_student_for_card(roll_no, &current_student)) {
+            if (db_get_student_for_card(atoi(roll_no), &current_student)) {
                 printf("[SUCCESS] Student found: %s\n", current_student.name);
                 card_flipped = FALSE;
                 refresh_student_card();
@@ -311,13 +291,12 @@ void on_search_student_fee_clicked(GtkButton *button, gpointer user_data) {
                             2, roll_no,
                             3, current_student.name,
                             4, current_student.branch,
-                            5, current_student.semester,
-                            6, fee_type,
-                            7, amount_str,
-                            8, paid_str,
-                            9, due_str,
-                            10, due_date,
-                            11, status,
+                            5, fee_type,
+                            6, amount_str,
+                            7, paid_str,
+                            8, due_str,
+                            9, due_date,
+                            10, status,
                             -1);
                     }
                     sqlite3_finalize(stmt);
@@ -335,9 +314,6 @@ void on_search_student_fee_clicked(GtkButton *button, gpointer user_data) {
     gtk_widget_destroy(dialog);
 }
 
-/**
- * @brief Handle refresh button
- */
 void on_refresh_fee_clicked(GtkButton *button, gpointer user_data) {
     (void)button;
     (void)user_data;
@@ -345,9 +321,6 @@ void on_refresh_fee_clicked(GtkButton *button, gpointer user_data) {
     refresh_fee_table();
 }
 
-/**
- * @brief Create fee management UI
- */
 void create_fee_ui(GtkWidget *container) {
     printf("[INFO] Creating Fee Management UI\n");
     

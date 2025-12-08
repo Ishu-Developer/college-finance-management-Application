@@ -174,41 +174,50 @@ sqlite3_stmt* db_get_fees_by_rollno(const char *roll_no) {
 /**
  * @brief Get student details for ID card display
  */
-int db_get_student_for_card(const char *roll_no, StudentIDCard *card) {
-    
-    if (!roll_no || !card) {
-        printf("[ERROR] NULL parameters in db_get_student_for_card\n");
+int db_get_student_for_card(int roll_no, StudentIDCard *card) {
+    if (roll_no <= 0 || !card) {
+        printf("[ERROR] Invalid parameters in db_get_student_for_card\n");
         return 0;
     }
-    
-    const char *sql = 
-        "SELECT student_id, roll_no, name, branch, semester FROM Students "
+
+    const char *sql =
+        "SELECT student_id, roll_no, name, branch FROM students "
         "WHERE roll_no = ?;";
-    
+
     sqlite3_stmt *stmt;
-    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
-    
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+
     if (rc != SQLITE_OK) {
         printf("[ERROR] Failed to prepare statement: %s\n", sqlite3_errmsg(db));
         return 0;
     }
-    
-    sqlite3_bind_text(stmt, 1, roll_no, -1, SQLITE_STATIC);
+
+    sqlite3_bind_int(stmt, 1, roll_no);
     rc = sqlite3_step(stmt);
-    
+
     if (rc == SQLITE_ROW) {
         card->student_id = sqlite3_column_int(stmt, 0);
-        strncpy(card->roll_no, (const char *)sqlite3_column_text(stmt, 1), sizeof(card->roll_no) - 1);
-        strncpy(card->name, (const char *)sqlite3_column_text(stmt, 2), sizeof(card->name) - 1);
-        strncpy(card->branch, (const char *)sqlite3_column_text(stmt, 3), sizeof(card->branch) - 1);
-        card->semester = sqlite3_column_int(stmt, 4);
-        
+        card->roll_no    = sqlite3_column_int(stmt, 1);  // store as int
+
+        const char *name = (const char *)sqlite3_column_text(stmt, 2);
+        if (name) {
+            strncpy(card->name, name, sizeof(card->name) - 1);
+            card->name[sizeof(card->name) - 1] = '\0';
+        }
+
+        const char *branch = (const char *)sqlite3_column_text(stmt, 3);
+        if (branch) {
+            strncpy(card->branch, branch, sizeof(card->branch) - 1);
+            card->branch[sizeof(card->branch) - 1] = '\0';
+        }
+
         sqlite3_finalize(stmt);
+        printf("[INFO] Student ID card data retrieved for roll_no: %d\n", roll_no);
         return 1;
     }
-    
+
     sqlite3_finalize(stmt);
-    printf("[WARNING] Student with roll_no %s not found\n", roll_no);
+    printf("[WARNING] Student with roll_no %d not found\n", roll_no);
     return 0;
 }
 

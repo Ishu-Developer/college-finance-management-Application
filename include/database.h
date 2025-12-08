@@ -1,67 +1,51 @@
 #ifndef DATABASE_H
 #define DATABASE_H
 
-
 #include <sqlite3.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-
 extern sqlite3 *db;
 
-
-int db_init();
+int db_init(const char *db_path);  // ✅ FIXED: Single declaration
 void db_close();
 const char* db_get_error();
-
 
 /* ============================================================================
  * STUDENT MANAGEMENT - CRUD OPERATIONS
  * ============================================================================ */
 
-
 typedef struct {
     int student_id;
-    char roll_no[20];
-    char name[100];
+    int roll_no;
+    char name[100];           // ✅ FIXED: Proper array size
+    char gender[20];
+    char father_name[100];
     char branch[50];
+    int year;
     int semester;
-    char mobile[15];
+    char category[20];
+    long long mobile;
     char email[100];
 } Student;
 
-
-int db_add_student(const char *roll_no, const char *name, const char *branch,
-                   int semester, const char *mobile, const char *email);
-
+int db_add_student(const char *name, const char *gender, const char *father_name, 
+                   const char *branch, int year, int semester, int roll_no, 
+                   const char *category, long long mobile, const char *email);
 
 int db_get_student(int student_id, Student *student);
-
-
 sqlite3_stmt* db_get_all_students();
-
-
 sqlite3_stmt* db_get_students_by_branch(const char *branch);
-
-
-int db_search_student_by_rollno(const char *roll_no, Student *student);
-
-
-int db_update_student(int student_id, const Student *student);
-
-
+int db_search_student_by_rollno(int roll_no, Student *student);
+int db_edit_student(int student_id, const Student *student);
 int db_delete_student(int student_id);
-
-
 int db_get_student_count();
 
-
 /* ============================================================================
- * FEE MANAGEMENT - CRUD OPERATIONS (NEW MODULE)
+ * FEE MANAGEMENT - CRUD OPERATIONS
  * ============================================================================ */
 
-// Guard to prevent duplicate structure definitions
 #ifndef FEE_STRUCTURES_DEFINED
 #define FEE_STRUCTURES_DEFINED
 
@@ -72,228 +56,155 @@ typedef struct {
     char name[100];
     char branch[20];
     int semester;
-    char fee_type[50];              // Institute, Hostel, Mess, Library, Sports, Medical
+    char fee_type[50];
     double amount;
     double amount_paid;
     double amount_due;
-    char due_date[15];              // YYYY-MM-DD
-    char status[20];                // Pending, Partial, Paid
+    char due_date[10];
+    char status[20];
     char created_at[30];
 } Fee;
 
 typedef struct {
     int student_id;
-    char roll_no[20];
-    char name[100];
-    char father_name[100];
+    int roll_no;
+    char name[50];
+    char father_name[50];
     char branch[20];
-    int semester;
     char gender[15];
-    char mobile[10];
+    char mobile[15];
     char email[100];
     char photo_path[500];
 } StudentIDCard;
+#endif
 
-#endif  // FEE_STRUCTURES_DEFINED
-
-
-/**
- * @brief Initialize fee table in database
- */
 int db_fee_init();
-
-
-/**
- * @brief Add new fee record
- * @param roll_no Student roll number
- * @param fee_type Type of fee
- * @param amount Fee amount
- * @param due_date Due date (YYYY-MM-DD)
- * @return Fee ID on success, -1 on failure
- */
 int db_add_fee(const char *roll_no, const char *fee_type, double amount, const char *due_date);
-
-
-/**
- * @brief Get all fees with student details
- * @return SQLite statement with fee records
- */
 sqlite3_stmt* db_get_all_fees();
-
-
 sqlite3_stmt* db_get_fees_by_rollno(const char *roll_no);
-
-
-int db_get_student_for_card(const char *roll_no, StudentIDCard *card);
-
-
+int db_get_student_for_card(int roll_no, StudentIDCard *card);
 int db_record_payment(int fee_id, double amount_paid, const char *payment_date);
-
 int db_update_fee_status(int fee_id, const char *status);
-
-
 int db_get_student_fee_summary(const char *roll_no, double *total_amount, 
                                double *total_paid, double *total_due);
 
-
 /* ============================================================================
- * EMPLOYEE MANAGEMENT - CRUD OPERATIONS
+ * DATA STRUCTURES - EMPLOYEE & PAYROLL
  * ============================================================================ */
-
 
 typedef struct {
     int emp_id;
     char emp_no[20];
-    char name[100];
-    char designation[50];
+    char employee_name[100];
+    char birth_date[20];
     char department[50];
-    char category[30];              // Faculty, Staff, Support
+    char designation[50];
+    char reporting_person[100];
     char email[100];
-    char mobile[15];
-    char doa[15];                   // Date of Appointment (YYYY-MM-DD)
-    double salary;
-    char bank_account[30];
+    char mobile_number[15];
+    float base_salary;
+    char joining_date[20];
+    char status[20];
+    char address[200];
+    char bank_account[50];
 } Employee;
 
-
-int db_add_employee(const char *emp_no, const char *name,
-                    const char *designation, const char *department,
-                    const char *category, const char *email, 
-                    const char *mobile, const char *doa, double salary,
-                    const char *bank_account);
-
-
-int db_get_employee(int emp_id, Employee *employee);
-
-
-sqlite3_stmt* db_get_all_employees();
-
-
-sqlite3_stmt* db_search_employee(const char *search_term);
-
-
-int db_update_employee(int emp_id, const Employee *employee);
-
-
-int db_delete_employee(int emp_id);
-
-
-int db_get_employee_count();
-
-
 /* ============================================================================
- * ACCOUNTS MANAGEMENT - CRUD OPERATIONS
+ * PAYROLL STRUCT - Matches payroll table exactly
  * ============================================================================ */
-
-
-typedef struct {
-    int account_id;
-    char account_type[50];
-    char ledger_name[100];
-    double opening_balance;
-    double current_balance;
-    char description[256];
-    char tally_sync_status[20];
-} Account;
-
-
-int db_add_account(const char *account_type, const char *ledger_name,
-                   double opening_balance, const char *description);
-
-
-int db_get_account(int account_id, Account *account);
-
-
-sqlite3_stmt* db_get_all_accounts();
-
-
-int db_update_account_balance(int account_id, double new_balance);
-
-
-int db_update_account_sync_status(int account_id, const char *status);
-
-
-int db_delete_account(int account_id);
-
-
-/* ============================================================================
- * TRANSACTION LOGGING
- * ============================================================================ */
-
-
-typedef struct {
-    int transaction_id;
-    int account_id;
-    char transaction_type[20];
-    double amount;
-    char description[256];
-    char transaction_date[20];
-    char reference_no[50];
-} Transaction;
-
-
-int db_log_transaction(int account_id, const char *transaction_type,
-                       double amount, const char *description,
-                       const char *reference_no);
-
-sqlite3_stmt* db_get_account_transactions(int account_id);
-
-
-sqlite3_stmt* db_get_transactions_by_date(const char *start_date,
-                                          const char *end_date);
-
-
-/* ============================================================================
- * PAYROLL MANAGEMENT
- * ============================================================================ */
-
-
 typedef struct {
     int payroll_id;
     int emp_id;
-    char month_year[20];
+    char month_year[20];           // "Dec-2025"
     double basic_salary;
-    double allowances;
-    double deductions;
+    double house_rent;
+    double medical;
+    double conveyance;
+    double dearness_allowance;
+    double performance_bonus;
+    double other_allowances;
+    double total_allowances;
+    double income_tax;
+    double provident_fund;
+    double health_insurance;
+    double loan_deduction;
+    double other_deductions;
+    double total_deductions;
+    double gross_salary;
     double net_salary;
-    char payment_date[20];
-    char status[20];
+    char payment_date[20];         // "2025-12-01"
+    char payment_method[50];       // "Bank Transfer"
+    char status[20];               // "Pending", "Paid"
+    char remarks[200];
 } Payroll;
 
-
-int db_add_payroll(int emp_id, const char *month_year, double basic_salary,
-                   double allowances, double deductions);
-
-int db_get_payroll(int payroll_id, Payroll *payroll);
-
-
-sqlite3_stmt* db_get_all_payroll();
-
-
-sqlite3_stmt* db_get_employee_payroll(int emp_id, const char *month_year);
-
-
-int db_update_payroll_status(int payroll_id, const char *status,
-                             const char *payment_date);
-
-
-int db_delete_payroll(int payroll_id);
-
+/* ============================================================================
+ * SALARY SLIP STRUCT - Matches salary_slips table exactly
+ * ============================================================================ */
+typedef struct {
+    int slip_id;
+    int payroll_id;
+    int emp_id;
+    char emp_no[20];
+    char employee_name[100];
+    char designation[50];
+    char department[20];
+    char from_date[20];            // "2025-11-01"
+    char to_date[20];              // "2025-11-30"
+    char slip_date[20];            // "2025-12-01"
+    double basic_salary;
+    double house_rent;
+    double medical;
+    double conveyance;
+    double dearness_allowance;
+    double performance_bonus;
+    double other_allowances;
+    double total_allowances;
+    double income_tax;
+    double provident_fund;
+    double health_insurance;
+    double loan_deduction;
+    double other_deductions;
+    double total_deductions;
+    double gross_salary;
+    double net_salary;
+    char payment_status[20];       // "Paid", "Pending"
+} SalarySlip;
 
 /* ============================================================================
- * TALLY SYNCHRONIZATION LOGGING
+ * DATABASE INITIALIZATION & TABLES
  * ============================================================================ */
 
+int db_create_payroll_tables();
 
-int db_log_tally_sync(const char *record_type, int record_id,
-                      const char *sync_status, const char *error_message);
+/* ============================================================================
+ * PAYROLL FUNCTIONS
+ * ============================================================================ */
 
+int db_add_payroll(const Payroll *payroll);
+int db_get_payroll(int payroll_id, Payroll *payroll);
+int db_get_payroll_by_emp_month(int emp_id, const char *month_year, Payroll *payroll);
+sqlite3_stmt* db_get_all_payroll();
+sqlite3_stmt* db_get_payroll_by_employee(int emp_id);
+sqlite3_stmt* db_get_payroll_by_month(const char *month_year);
+int db_update_payroll(const Payroll *payroll);
+int db_delete_payroll(int payroll_id);
+int db_mark_payroll_paid(int payroll_id, const char *payment_date, const char *payment_method);
 
-sqlite3_stmt* db_get_failed_syncs();
+/* ============================================================================
+ * EMPLOYEE FUNCTIONS
+ * ============================================================================ */
 
+int db_add_employee(const Employee *emp);
+int db_get_employee(int emp_id, Employee *emp);
+int db_get_all_employees(sqlite3_stmt **stmt);
+int db_update_employee(const Employee *emp);
+int db_delete_employee(int emp_id);
 
-sqlite3_stmt* db_get_sync_log_by_date(const char *start_date,
-                                       const char *end_date);
+/* ============================================================================
+ * ERROR HANDLING
+ * ============================================================================ */
 
+const char* db_payroll_get_error();
 
-#endif
+#endif  // DATABASE_H
