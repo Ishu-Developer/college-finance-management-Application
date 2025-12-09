@@ -4,10 +4,6 @@
 #include <gtk/gtk.h>
 #include "../../include/payroll.h"
 
-/* ============================================================================
- * STATIC VARIABLES (UI Components)
- * ============================================================================ */
-
 // Main containers
 static GtkWidget *payroll_main_box = NULL;
 static GtkWidget *payroll_form_box = NULL;
@@ -601,9 +597,16 @@ void create_payroll_ui(GtkWidget *container) {
         return;
     }
 
-    // Main box (vertical)
+    // ===== FULL MODULE SCROLLING =====
+    GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), 
+                                   GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_widget_set_size_request(scrolled_window, -1, 600);  // Minimum height
+    gtk_container_add(GTK_CONTAINER(container), scrolled_window);
+
+    // Main content box
     payroll_main_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    gtk_container_add(GTK_CONTAINER(container), payroll_main_box);
+    gtk_container_add(GTK_CONTAINER(scrolled_window), payroll_main_box);
     gtk_container_set_border_width(GTK_CONTAINER(payroll_main_box), 10);
 
     // ===== EMPLOYEE SELECTION SECTION =====
@@ -841,6 +844,7 @@ void create_payroll_ui(GtkWidget *container) {
     gtk_box_pack_start(GTK_BOX(button_box), delete_btn, FALSE, FALSE, 0);
 
     // ===== PAYROLL TABLE =====
+    // ===== PAYROLL TABLE =====
     GtkWidget *table_frame = gtk_frame_new("Payroll Records");
     gtk_box_pack_start(GTK_BOX(payroll_main_box), table_frame, TRUE, TRUE, 0);
 
@@ -855,6 +859,7 @@ void create_payroll_ui(GtkWidget *container) {
     );
 
     payroll_tree_view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(payroll_store));
+
     g_signal_connect(payroll_tree_view, "row-activated",
                     G_CALLBACK(on_payroll_row_selected), NULL);
 
@@ -885,11 +890,15 @@ void create_payroll_ui(GtkWidget *container) {
         renderer, "text", 5, NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(payroll_tree_view), col);
 
+    // ✅ SCROLLING WRAPPER
     GtkWidget *scrolled = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled), 
+                                GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
     gtk_container_add(GTK_CONTAINER(scrolled), payroll_tree_view);
     gtk_container_add(GTK_CONTAINER(table_frame), scrolled);
 
     gtk_widget_show_all(payroll_main_box);
 
     printf("[SUCCESS] Payroll UI created successfully\n");
+
 }
