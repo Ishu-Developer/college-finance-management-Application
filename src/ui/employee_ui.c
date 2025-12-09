@@ -5,6 +5,7 @@
 #include "../../include/database.h"
 #include "../../include/validators.h"
 
+
 // Global variables
 static GtkWidget *employee_table = NULL;
 static GtkWidget *form_box = NULL;
@@ -18,6 +19,7 @@ static GtkWidget *emp_email_entry;
 static GtkWidget *emp_doa_entry;
 static GtkWidget *emp_salary_entry;
 static GtkWidget *emp_bank_account_entry;
+
 
 /**
  * @brief Refresh employee table from database (FIXED for new API)
@@ -45,7 +47,7 @@ void refresh_employee_list() {
         const char *birth_date = (const char *)sqlite3_column_text(stmt, 3);
         const char *department = (const char *)sqlite3_column_text(stmt, 4);
         const char *designation = (const char *)sqlite3_column_text(stmt, 5);
-        const char *reporting_person = (const char *)sqlite3_column_text(stmt, 6);
+        // ✅ FIXED: Removed unused variable 'reporting_person'
         const char *email = (const char *)sqlite3_column_text(stmt, 7);
         const char *mobile = (const char *)sqlite3_column_text(stmt, 8);
         
@@ -71,6 +73,7 @@ void refresh_employee_list() {
     printf("[INFO] Loaded %d employees\n", count);
 }
 
+
 /**
  * @brief Handle Add Employee button click
  */
@@ -87,6 +90,7 @@ void on_add_employee_clicked(GtkButton *button, gpointer user_data) {
         gtk_widget_grab_focus(emp_number_entry);
     }
 }
+
 
 /**
  * @brief Handle Save Employee button (FIXED for new Employee struct API)
@@ -119,10 +123,10 @@ void on_save_employee_clicked(GtkButton *button, gpointer user_data) {
                              (department_idx == 2) ? "CIVIL" : "ME";
     
     int category_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(emp_category_combo));
-    const char *category = (category_idx == 0) ? "Faculty" :
-                           (category_idx == 1) ? "Staff" : "Support";
+    // ✅ FIXED: Removed unused variable 'category' - we don't need it for this function
     
-    printf("[INFO] Employee Validation - Name: %s, Emp#: %s, Dept: %s\n", name, emp_no, department);
+    printf("[INFO] Employee Validation - Name: %s, Emp#: %s, Dept: %s, Category Index: %d\n", 
+           name, emp_no, department, category_idx);
     
     // Validation
     if (strlen(emp_no) == 0) {
@@ -207,6 +211,7 @@ void on_save_employee_clicked(GtkButton *button, gpointer user_data) {
     }
 }
 
+
 /**
  * @brief Handle Refresh button click
  */
@@ -216,6 +221,7 @@ void on_refresh_employee_clicked(GtkButton *button, gpointer user_data) {
     printf("[INFO] Refresh button clicked\n");
     refresh_employee_list();
 }
+
 
 /**
  * @brief Handle Search button click (SIMPLIFIED - uses refresh for now)
@@ -227,8 +233,9 @@ void on_search_employee_clicked(GtkButton *button, gpointer user_data) {
     refresh_employee_list();
 }
 
+
 /**
- * @brief Create Employee Management UI (UNCHANGED)
+ * @brief Create Employee Management UI (COMPLETED)
  */
 void create_employee_ui(GtkWidget *container) {
     printf("[INFO] Creating Employee Management UI\n");
@@ -262,37 +269,38 @@ void create_employee_ui(GtkWidget *container) {
     g_signal_connect(search_btn, "clicked", G_CALLBACK(on_search_employee_clicked), NULL);
     gtk_box_pack_start(GTK_BOX(button_box), search_btn, FALSE, FALSE, 0);
     
-    // ADD EMPLOYEE FORM (unchanged - kept for compatibility)
+    // ADD EMPLOYEE FORM (hidden by default)
     form_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
     gtk_container_set_border_width(GTK_CONTAINER(form_box), 10);
     gtk_widget_set_name(form_box, "form_box");
     gtk_box_pack_start(GTK_BOX(main_box), form_box, FALSE, FALSE, 0);
     gtk_widget_hide(form_box);
     
-    // Form grid (unchanged)
+    // Form grid
     GtkWidget *grid = gtk_grid_new();
     gtk_grid_set_column_spacing(GTK_GRID(grid), 10);
     gtk_grid_set_row_spacing(GTK_GRID(grid), 8);
+    gtk_box_pack_start(GTK_BOX(form_box), grid, FALSE, FALSE, 0);
     
     // Row 1: Employee Number and Name
     GtkWidget *emp_number_label = gtk_label_new("Employee Number:");
     gtk_widget_set_halign(emp_number_label, GTK_ALIGN_START);
-    gtk_grid_attach(GTK_GRID(grid), emp_number_label, 0, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), emp_number_label, 0, 0, 1, 1);
     emp_number_entry = gtk_entry_new();
     gtk_entry_set_placeholder_text(GTK_ENTRY(emp_number_entry), "E001");
-    gtk_grid_attach(GTK_GRID(grid), emp_number_entry, 1, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), emp_number_entry, 1, 0, 1, 1);
     
     GtkWidget *name_label = gtk_label_new("Full Name:");
     gtk_widget_set_halign(name_label, GTK_ALIGN_START);
-    gtk_grid_attach(GTK_GRID(grid), name_label, 2, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), name_label, 2, 0, 1, 1);
     emp_name_entry = gtk_entry_new();
     gtk_entry_set_placeholder_text(GTK_ENTRY(emp_name_entry), "John Doe");
-    gtk_grid_attach(GTK_GRID(grid), emp_name_entry, 3, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), emp_name_entry, 3, 0, 1, 1);
     
     // Row 2: Designation and Department
     GtkWidget *designation_label = gtk_label_new("Designation:");
     gtk_widget_set_halign(designation_label, GTK_ALIGN_START);
-    gtk_grid_attach(GTK_GRID(grid), designation_label, 0, 2, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), designation_label, 0, 1, 1, 1);
     emp_designation_combo = gtk_combo_box_text_new();
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(emp_designation_combo), "Faculty");
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(emp_designation_combo), "HOD");
@@ -300,20 +308,130 @@ void create_employee_ui(GtkWidget *container) {
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(emp_designation_combo), "Housekeeping");
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(emp_designation_combo), "Other");
     gtk_combo_box_set_active(GTK_COMBO_BOX(emp_designation_combo), 0);
-    gtk_grid_attach(GTK_GRID(grid), emp_designation_combo, 1, 2, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), emp_designation_combo, 1, 1, 1, 1);
     
     GtkWidget *department_label = gtk_label_new("Department:");
     gtk_widget_set_halign(department_label, GTK_ALIGN_START);
-    gtk_grid_attach(GTK_GRID(grid), department_label, 2, 2, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), department_label, 2, 1, 1, 1);
     emp_department_combo = gtk_combo_box_text_new();
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(emp_department_combo), "CSE");
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(emp_department_combo), "EE");
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(emp_department_combo), "CIVIL");
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(emp_department_combo), "ME");
     gtk_combo_box_set_active(GTK_COMBO_BOX(emp_department_combo), 0);
-    gtk_grid_attach(GTK_GRID(grid), emp_department_combo, 3, 2, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), emp_department_combo, 3, 1, 1, 1);
     
     // Row 3: Category and Mobile
     GtkWidget *category_label = gtk_label_new("Category:");
     gtk_widget_set_halign(category_label, GTK_ALIGN_START);
-    gtk_grid_attach(GTK_GRID(grid), category_label, 0, 3, 1,
+    gtk_grid_attach(GTK_GRID(grid), category_label, 0, 2, 1, 1);
+    emp_category_combo = gtk_combo_box_text_new();
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(emp_category_combo), "Faculty");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(emp_category_combo), "Staff");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(emp_category_combo), "Support");
+    gtk_combo_box_set_active(GTK_COMBO_BOX(emp_category_combo), 0);
+    gtk_grid_attach(GTK_GRID(grid), emp_category_combo, 1, 2, 1, 1);
+    
+    GtkWidget *mobile_label = gtk_label_new("Mobile:");
+    gtk_widget_set_halign(mobile_label, GTK_ALIGN_START);
+    gtk_grid_attach(GTK_GRID(grid), mobile_label, 2, 2, 1, 1);
+    emp_mobile_entry = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(emp_mobile_entry), "9876543210");
+    gtk_grid_attach(GTK_GRID(grid), emp_mobile_entry, 3, 2, 1, 1);
+    
+    // Row 4: Email and DOA
+    GtkWidget *email_label = gtk_label_new("Email:");
+    gtk_widget_set_halign(email_label, GTK_ALIGN_START);
+    gtk_grid_attach(GTK_GRID(grid), email_label, 0, 3, 1, 1);
+    emp_email_entry = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(emp_email_entry), "john@example.com");
+    gtk_grid_attach(GTK_GRID(grid), emp_email_entry, 1, 3, 1, 1);
+    
+    GtkWidget *doa_label = gtk_label_new("Date of Joining:");
+    gtk_widget_set_halign(doa_label, GTK_ALIGN_START);
+    gtk_grid_attach(GTK_GRID(grid), doa_label, 2, 3, 1, 1);
+    emp_doa_entry = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(emp_doa_entry), "DD-MM-YYYY");
+    gtk_grid_attach(GTK_GRID(grid), emp_doa_entry, 3, 3, 1, 1);
+    
+    // Row 5: Salary and Bank Account
+    GtkWidget *salary_label = gtk_label_new("Base Salary (₹):");
+    gtk_widget_set_halign(salary_label, GTK_ALIGN_START);
+    gtk_grid_attach(GTK_GRID(grid), salary_label, 0, 4, 1, 1);
+    emp_salary_entry = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(emp_salary_entry), "50000");
+    gtk_grid_attach(GTK_GRID(grid), emp_salary_entry, 1, 4, 1, 1);
+    
+    GtkWidget *bank_label = gtk_label_new("Bank Account:");
+    gtk_widget_set_halign(bank_label, GTK_ALIGN_START);
+    gtk_grid_attach(GTK_GRID(grid), bank_label, 2, 4, 1, 1);
+    emp_bank_account_entry = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(emp_bank_account_entry), "123456789");
+    gtk_grid_attach(GTK_GRID(grid), emp_bank_account_entry, 3, 4, 1, 1);
+    
+    // Save button
+    GtkWidget *save_btn = gtk_button_new_with_label("💾 Save Employee");
+    g_signal_connect(save_btn, "clicked", G_CALLBACK(on_save_employee_clicked), NULL);
+    gtk_box_pack_start(GTK_BOX(form_box), save_btn, FALSE, FALSE, 0);
+    
+    // EMPLOYEE TABLE
+    GtkListStore *store = gtk_list_store_new(11,
+        G_TYPE_STRING,  // 0: Edit button
+        G_TYPE_STRING,  // 1: Delete button
+        G_TYPE_INT,     // 2: Employee ID (hidden)
+        G_TYPE_STRING,  // 3: Employee Number
+        G_TYPE_STRING,  // 4: Name
+        G_TYPE_STRING,  // 5: Designation
+        G_TYPE_STRING,  // 6: Department
+        G_TYPE_STRING,  // 7: Category
+        G_TYPE_STRING,  // 8: Email
+        G_TYPE_STRING,  // 9: Mobile
+        G_TYPE_STRING   // 10: Birth Date
+    );
+    
+    employee_table = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
+    g_object_unref(store);
+    
+    // Add columns
+    GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
+    
+    GtkTreeViewColumn *col = gtk_tree_view_column_new_with_attributes("Edit", renderer, "text", 0, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(employee_table), col);
+    
+    col = gtk_tree_view_column_new_with_attributes("Delete", renderer, "text", 1, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(employee_table), col);
+    
+    col = gtk_tree_view_column_new_with_attributes("Emp#", renderer, "text", 3, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(employee_table), col);
+    
+    col = gtk_tree_view_column_new_with_attributes("Name", renderer, "text", 4, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(employee_table), col);
+    
+    col = gtk_tree_view_column_new_with_attributes("Designation", renderer, "text", 5, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(employee_table), col);
+    
+    col = gtk_tree_view_column_new_with_attributes("Department", renderer, "text", 6, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(employee_table), col);
+    
+    col = gtk_tree_view_column_new_with_attributes("Category", renderer, "text", 7, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(employee_table), col);
+    
+    col = gtk_tree_view_column_new_with_attributes("Email", renderer, "text", 8, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(employee_table), col);
+    
+    col = gtk_tree_view_column_new_with_attributes("Mobile", renderer, "text", 9, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(employee_table), col);
+    
+    col = gtk_tree_view_column_new_with_attributes("DOB", renderer, "text", 10, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(employee_table), col);
+    
+    // Scrolled window for table
+    GtkWidget *scrolled = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled), 
+                                    GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_container_add(GTK_CONTAINER(scrolled), employee_table);
+    gtk_box_pack_start(GTK_BOX(main_box), scrolled, TRUE, TRUE, 0);
+    
+    gtk_widget_show_all(main_box);
+    printf("[SUCCESS] Employee Management UI created\n");
+}

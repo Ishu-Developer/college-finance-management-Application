@@ -11,8 +11,6 @@
 // Main containers
 static GtkWidget *payroll_main_box = NULL;
 static GtkWidget *payroll_form_box = NULL;
-static GtkWidget *payroll_table_box = NULL;
-
 // Employee Selection Section
 static GtkWidget *employee_combo = NULL;
 static GtkWidget *emp_name_label = NULL;
@@ -130,7 +128,10 @@ static void update_calculations() {
  * Callback for entry field changes - triggers recalculation
  */
 static void on_entry_changed(GtkEditable *editable, gpointer user_data) {
-    update_calculations();
+    (void)editable;      // Explicitly ignore unused parameters
+    (void)user_data;
+    
+    update_calculations(); // Rest of function
 }
 
 /* ============================================================================
@@ -138,25 +139,13 @@ static void on_entry_changed(GtkEditable *editable, gpointer user_data) {
  * ============================================================================ */
 
 /**
- * Load employee data into current_payroll from database
- * (This requires accessing employee database - placeholder)
- */
-static void load_employee_data(int emp_id) {
-    printf("[INFO] Loading employee data for emp_id=%d\n", emp_id);
-
-    // TODO: Query database for employee details
-    // db_get_employee(emp_id, &employee);
-    // Update labels with employee data
-
-    current_emp_id = emp_id;
-}
-
-/**
  * Callback when employee is selected from dropdown
  */
 static void on_employee_combo_changed(GtkComboBox *combo, gpointer user_data) {
-    GtkTreeIter iter;
+    (void)user_data;
     
+    GtkTreeIter iter;
+    // Rest of function    
     if (!gtk_combo_box_get_active_iter(combo, &iter)) {
         printf("[WARNING] No employee selected\n");
         return;
@@ -217,8 +206,11 @@ static void on_employee_combo_changed(GtkComboBox *combo, gpointer user_data) {
  * Calculate button clicked - trigger calculation
  */
 static void on_calculate_clicked(GtkButton *button, gpointer user_data) {
+    (void)button;
+    (void)user_data;
+    
     printf("[INFO] Calculate button clicked\n");
-
+    // Rest of function
     char error_msg[500] = "";
 
     // Validate payroll data
@@ -246,8 +238,11 @@ static void on_calculate_clicked(GtkButton *button, gpointer user_data) {
  * Save button clicked - save payroll to database
  */
 static void on_save_payroll_clicked(GtkButton *button, gpointer user_data) {
+    (void)button;
+    (void)user_data;
+    
     printf("[INFO] Save Payroll button clicked\n");
-
+    // Rest of function
     // Get month/year from combo/spinner
     gint active_month = gtk_combo_box_get_active(GTK_COMBO_BOX(month_combo));
     gint year = (gint)gtk_spin_button_get_value(GTK_SPIN_BUTTON(year_spin));
@@ -304,8 +299,11 @@ static void on_save_payroll_clicked(GtkButton *button, gpointer user_data) {
  * Reset button clicked - clear form
  */
 static void on_reset_clicked(GtkButton *button, gpointer user_data) {
+    (void)button;
+    (void)user_data;
+    
     printf("[INFO] Reset button clicked\n");
-
+    // Rest of function
     gtk_combo_box_set_active(GTK_COMBO_BOX(employee_combo), -1);
     gtk_combo_box_set_active(GTK_COMBO_BOX(month_combo), -1);
 
@@ -338,8 +336,11 @@ static void on_reset_clicked(GtkButton *button, gpointer user_data) {
  * Delete payroll record
  */
 static void on_delete_payroll_clicked(GtkButton *button, gpointer user_data) {
+    (void)button;
+    (void)user_data;
+    
     printf("[INFO] Delete Payroll button clicked\n");
-
+    // Rest of function
     if (current_payroll_id <= 0) {
         GtkWidget *dialog = gtk_message_dialog_new(NULL,
             GTK_DIALOG_MODAL,
@@ -389,8 +390,11 @@ static void on_delete_payroll_clicked(GtkButton *button, gpointer user_data) {
  * Mark payroll as paid
  */
 static void on_mark_paid_clicked(GtkButton *button, gpointer user_data) {
+    (void)button;
+    (void)user_data;
+    
     printf("[INFO] Mark Paid button clicked\n");
-
+    // Rest of function
     if (current_payroll_id <= 0) {
         GtkWidget *dialog = gtk_message_dialog_new(NULL,
             GTK_DIALOG_MODAL,
@@ -426,8 +430,11 @@ static void on_mark_paid_clicked(GtkButton *button, gpointer user_data) {
  * Print/View salary slip
  */
 static void on_print_slip_clicked(GtkButton *button, gpointer user_data) {
+    (void)button;
+    (void)user_data;
+    
     printf("[INFO] Print Slip button clicked\n");
-
+    // Rest of function 
     if (current_payroll_id <= 0) {
         GtkWidget *dialog = gtk_message_dialog_new(NULL,
             GTK_DIALOG_MODAL,
@@ -544,9 +551,12 @@ void refresh_payroll_table() {
  */
 static void on_payroll_row_selected(GtkTreeView *tree_view, GtkTreePath *path,
                                     GtkTreeViewColumn *col, gpointer user_data) {
+    (void)col;
+    (void)user_data;
+    
     GtkTreeIter iter;
     GtkTreeModel *model = gtk_tree_view_get_model(tree_view);
-
+    // Rest of function
     if (gtk_tree_model_get_iter(model, &iter, path)) {
         int payroll_id = 0;
         gtk_tree_model_get(model, &iter, 0, &payroll_id, -1);
