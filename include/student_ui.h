@@ -8,7 +8,9 @@ void on_add_student_clicked(GtkButton *button, gpointer user_data);
 
 void on_view_students_clicked(GtkButton *button, gpointer user_data);
 
-void on_search_student_clicked(GtkButton *button, gpointer user_data);
+// Search functions
+void on_search_perform_inline(GtkButton *button, gpointer user_data);
+void on_search_clear(GtkButton *button, gpointer user_data);
 
 void on_edit_student_clicked(GtkButton *button, gpointer user_data);
 

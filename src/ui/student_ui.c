@@ -21,6 +21,8 @@ static GtkWidget *category_combo;
 static GtkWidget *mobile_entry;
 static GtkWidget *email_entry;
 static GtkWidget *error_label;  // ✅ NEW for validation messages
+static GtkWidget *search_bar = NULL;
+static GtkWidget *search_entry = NULL;
 
 void refresh_student_table() {
     printf("[INFO] Refreshing student table\n");
@@ -335,44 +337,151 @@ void on_search_student_clicked(GtkButton *button, gpointer user_data) {
     (void)button;
     (void)user_data;
     
-    GtkWidget *dialog = gtk_dialog_new_with_buttons(
-        "🔍 Search Student",
-        NULL,
-        GTK_DIALOG_MODAL,
-        "Cancel", GTK_RESPONSE_CANCEL,
-        "Search", GTK_RESPONSE_OK,
-        NULL);
+    printf("[INFO] Search button clicked\n");
     
-    gtk_window_set_default_size(GTK_WINDOW(dialog), 300, 120);
-    
-    GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-    GtkWidget *main_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    gtk_container_add(GTK_CONTAINER(content_area), main_box);
-    gtk_container_set_border_width(GTK_CONTAINER(main_box), 15);
-    
-    GtkWidget *label = gtk_label_new("Search by Roll Number:");
-    gtk_box_pack_start(GTK_BOX(main_box), label, FALSE, FALSE, 0);
-    
-    GtkWidget *search_entry = gtk_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), "Enter roll number");
-    gtk_box_pack_start(GTK_BOX(main_box), search_entry, FALSE, FALSE, 0);
-    
-    gtk_widget_show_all(dialog);
-    
-    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_OK) {
-        const char *search_text = gtk_entry_get_text(GTK_ENTRY(search_entry));
-        if (strlen(search_text) > 0) {
-            printf("[INFO] Searching for: %s\n", search_text);
-            GtkWidget *msg = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL,
-                GTK_MESSAGE_INFO, GTK_BUTTONS_OK,
-                "Search functionality coming soon...\nSearching for: %s", search_text);
-            gtk_dialog_run(GTK_DIALOG(msg));
-            gtk_widget_destroy(msg);
-        }
+    // If search bar exists and is visible, hide it
+    if (search_bar && gtk_widget_get_visible(search_bar)) {
+        printf("[INFO] Hiding search bar\n");
+        gtk_widget_hide(search_bar);
+        refresh_student_table();
+        return;
     }
     
-    gtk_widget_destroy(dialog);
+    // Create search bar if it doesn't exist
+    if (search_bar == NULL) {
+        printf("[INFO] Creating search bar\n");
+        
+        search_bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+        gtk_container_set_border_width(GTK_CONTAINER(search_bar), 10);
+        gtk_widget_set_name(search_bar, "search_bar");
+        
+        // Label
+        GtkWidget *label = gtk_label_new("🔍 Search by Roll No:");
+        gtk_widget_set_size_request(label, 150, -1);
+        gtk_box_pack_start(GTK_BOX(search_bar), label, FALSE, FALSE, 0);
+        
+        // Entry
+        search_entry = gtk_entry_new();
+        gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), "Enter Roll No (e.g., 1001)");
+        gtk_widget_set_size_request(search_entry, 200, -1);
+        gtk_box_pack_start(GTK_BOX(search_bar), search_entry, FALSE, FALSE, 0);
+        
+        // Search button
+        GtkWidget *search_btn = gtk_button_new_with_label("🔎 Find");
+        gtk_widget_set_size_request(search_btn, 100, -1);
+        gtk_box_pack_start(GTK_BOX(search_bar), search_btn, FALSE, FALSE, 0);
+        
+        // Clear button
+        GtkWidget *clear_btn = gtk_button_new_with_label("✖️ Clear");
+        gtk_widget_set_size_request(clear_btn, 100, -1);
+        gtk_box_pack_start(GTK_BOX(search_bar), clear_btn, FALSE, FALSE, 0);
+        
+        // Connect signals
+        g_signal_connect(search_btn, "clicked", G_CALLBACK(on_search_perform_inline), NULL);
+        g_signal_connect(clear_btn, "clicked", G_CALLBACK(on_search_clear), NULL);
+    }
+    
+    // Show search bar
+    printf("[INFO] Showing search bar\n");
+    gtk_widget_show_all(search_bar);
+    gtk_widget_grab_focus(search_entry);
 }
+
+
+// Search callback - CORRECTED
+void on_search_perform_inline(GtkButton *button, gpointer user_data) {
+    (void)button;
+    (void)user_data;
+    
+    const char *roll_no_str = gtk_entry_get_text(GTK_ENTRY(search_entry));
+    
+    if (!roll_no_str || strlen(roll_no_str) == 0) {
+        gtk_label_set_text(GTK_LABEL(error_label), "❌ Please enter a roll number");
+        gtk_widget_show(error_label);
+        return;
+    }
+    
+    printf("[INFO] Searching for roll: %s\n", roll_no_str);
+    
+    // Clear table
+    GtkListStore *store = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(student_table)));
+    gtk_list_store_clear(store);
+    
+    // Search database
+    sqlite3_stmt *stmt = db_get_all_students();
+    int found = 0;
+    
+    if (stmt != NULL) {
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            int roll_no = sqlite3_column_int(stmt, 1);
+            
+            // ✅ FIXED: char instead of char
+            char roll_str[20];
+            snprintf(roll_str, sizeof(roll_str), "%d", roll_no);
+            
+            if (strcmp(roll_str, roll_no_str) == 0) {
+                const char *name = (const char *)sqlite3_column_text(stmt, 2);
+                const char *branch = (const char *)sqlite3_column_text(stmt, 3);
+                int year = sqlite3_column_int(stmt, 4);
+                int semester = sqlite3_column_int(stmt, 5);
+                
+                // ✅ FIXED: char instead of char
+                char year_str[20];
+                snprintf(year_str, sizeof(year_str), "%d", year);
+                
+                GtkTreeIter iter;
+                gtk_list_store_append(store, &iter);
+                gtk_list_store_set(store, &iter,
+                    0, "✏️", 
+                    1, "🗑️", 
+                    2, "📷",
+                    3, sqlite3_column_int(stmt, 0),
+                    4, name, 
+                    5, "—", 
+                    6, "—",
+                    7, branch, 
+                    8, year_str, 
+                    9, semester,
+                    10, roll_str, 
+                    11, "—", 
+                    12, "—", 
+                    13, "—",
+                    -1);
+                
+                found = 1;
+                break;
+            }
+        }
+        sqlite3_finalize(stmt);
+    }
+    
+    if (found) {
+        gtk_label_set_text(GTK_LABEL(error_label), "✅ Student found!");
+        gtk_widget_show(error_label);
+        printf("[SUCCESS] Search found student\n");
+    } else {
+        gtk_label_set_text(GTK_LABEL(error_label), 
+            "❌ No student found with roll number");
+        gtk_widget_show(error_label);
+        printf("[WARNING] Student not found\n");
+    }
+}
+
+
+// Clear search
+void on_search_clear(GtkButton *button, gpointer user_data) {
+    (void)button;
+    (void)user_data;
+    
+    printf("[INFO] Clear search\n");
+    
+    gtk_entry_set_text(GTK_ENTRY(search_entry), "");
+    gtk_widget_hide(search_bar);
+    gtk_widget_hide(error_label);
+    
+    refresh_student_table();
+}
+
 
 void create_student_ui(GtkWidget *container) {
     printf("[INFO] Creating Student Management UI\n");
@@ -556,6 +665,32 @@ void create_student_ui(GtkWidget *container) {
     gtk_label_set_markup(GTK_LABEL(table_label), "<span weight='bold'>📋 Students List</span>");
     gtk_widget_set_halign(table_label, GTK_ALIGN_START);
     gtk_box_pack_start(GTK_BOX(main_box), table_label, FALSE, FALSE, 5);
+        // Search bar (hidden initially)
+    search_bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+    gtk_container_set_border_width(GTK_CONTAINER(search_bar), 10);
+    gtk_widget_set_name(search_bar, "search_bar");
+    gtk_box_pack_start(GTK_BOX(main_box), search_bar, FALSE, FALSE, 0);
+    gtk_widget_hide(search_bar);
+
+    GtkWidget *search_label = gtk_label_new("🔍 Search by Roll No:");
+    gtk_widget_set_size_request(search_label, 150, -1);
+    gtk_box_pack_start(GTK_BOX(search_bar), search_label, FALSE, FALSE, 0);
+
+    search_entry = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), "Enter Roll No");
+    gtk_widget_set_size_request(search_entry, 200, -1);
+    gtk_box_pack_start(GTK_BOX(search_bar), search_entry, FALSE, FALSE, 0);
+
+    GtkWidget *search_find_btn = gtk_button_new_with_label("🔎 Find");
+    gtk_widget_set_size_request(search_find_btn, 100, -1);
+    gtk_box_pack_start(GTK_BOX(search_bar), search_find_btn, FALSE, FALSE, 0);
+    g_signal_connect(search_find_btn, "clicked", G_CALLBACK(on_search_perform_inline), NULL);
+
+    GtkWidget *search_clear_btn = gtk_button_new_with_label("✖️ Clear");
+    gtk_widget_set_size_request(search_clear_btn, 100, -1);
+    gtk_box_pack_start(GTK_BOX(search_bar), search_clear_btn, FALSE, FALSE, 0);
+    g_signal_connect(search_clear_btn, "clicked", G_CALLBACK(on_search_clear), NULL);
+
     
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),

@@ -56,9 +56,9 @@ int validate_gender(const char *gender) {
         return 0;
     }
     
-    if (strcmp(gender, "MALE") == 0 || 
-        strcmp(gender, "FEMALE") == 0 || 
-        strcmp(gender, "OTHER") == 0) {
+    if (strcasecmp(gender, "MALE") == 0 || 
+        strcasecmp(gender, "FEMALE") == 0 || 
+        strcasecmp(gender, "OTHER") == 0) {
         return 1;
     }
     return 0;
