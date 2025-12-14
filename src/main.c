@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../include/database.h"
+int db_create_tables();  
 #include "../include/student_ui.h"
 #include "../include/fee_ui.h"
 #include "../include/employee_ui.h"
@@ -263,12 +264,12 @@ void create_main_window() {
     GtkWidget *footer = gtk_label_new(NULL);
     gtk_label_set_markup(GTK_LABEL(footer),
         "<span color='#eeaf02ff' size='large'>"
-        "<i>CFMS v1.0 | Developed by Ishu & Mohsin | L.D.A.H Engineering College Mainpuri</i>"
+        "<i>CFMS v1.0 | Developed by Ishu &amp; Mohsin | L.D.A.H Engineering College Mainpuri</i>"
         "</span>");
-    gtk_widget_set_size_request(footer, -1, 40);
+    gtk_widget_set_size_request(footer, -1, 70);
     gtk_widget_set_halign(footer, GTK_ALIGN_CENTER);
     gtk_widget_set_margin_top(footer, 10);
-    gtk_widget_set_margin_bottom(footer, 30);
+    gtk_widget_set_margin_bottom(footer, 50);
     gtk_box_pack_start(GTK_BOX(main_box), footer, FALSE, TRUE, 0);
 
     g_signal_connect(main_window, "destroy", G_CALLBACK(on_window_destroy), NULL);
@@ -283,12 +284,16 @@ int main(int argc, char *argv[]) {
     printf("╚════════════════════════════════════════════════════════════════╝\n");
     printf("\n");
     printf("[INFO] Initializing database...\n");
-    if (!db_init("college_finance.db")) {
-        fprintf(stderr, "[ERROR] Failed to initialize database\n");
-        fprintf(stderr, "[ERROR] %s\n", db_get_error());
+    if (!db_init("data/college_finance.db")) {
+        printf("[ERROR] Database init failed\n");
         return 1;
     }
-    printf("[INFO] Database initialized successfully\n\n");
+    if (!db_create_tables()) {
+        printf("[ERROR] Failed to create tables: %s\n", db_get_error());
+        db_close();
+        return 1;
+    }
+    printf("[INFO] Database tables initialized\n");
     printf("[INFO] Initializing GTK...\n");
     gtk_init(&argc, &argv);
     create_main_window();

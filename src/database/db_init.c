@@ -88,79 +88,66 @@ int db_create_tables() {
         ");",
 
         
-        // Payroll table
+        // Payroll table ✅ FIXED
         "CREATE TABLE IF NOT EXISTS payroll ("
-        "payroll_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "emp_id INTEGER NOT NULL,"                  // Foreign Key to employees
-        "month_year TEXT NOT NULL,"                 // Month-Year (e.g., "Dec-2025")
-        "basic_salary REAL NOT NULL,"               // Base salary for that month
-
-        // ALLOWANCES
-        "house_rent REAL DEFAULT 0,"                // HRA
-        "medical REAL DEFAULT 0,"                   // Medical Allowance
-        "conveyance REAL DEFAULT 0,"                // Conveyance/Transport
-        "dearness_allowance REAL DEFAULT 0,"        // DA
-        "performance_bonus REAL DEFAULT 0,"         // Performance Bonus
-        "other_allowances REAL DEFAULT 0,"          // Other Allowances
-        "total_allowances REAL,"                    // Auto-calculated
-
-        // DEDUCTIONS
-        "income_tax REAL DEFAULT 0,"                // IT
-        "provident_fund REAL DEFAULT 0,"            // PF
-        "health_insurance REAL DEFAULT 0,"          // Insurance
-        "loan_deduction REAL DEFAULT 0,"            // Loan EMI
-        "other_deductions REAL DEFAULT 0,"          // Other Deductions
-        "total_deductions REAL,"                    // Auto-calculated
-
-        // FINAL CALCULATION
-        "net_salary REAL,"                          // Auto-calculated: Basic + Allowances - Deductions
-        "payment_date DATE,"                        // When payment was made
-        "payment_method TEXT,"                      // Bank Transfer / Cheque / Check
-        "status TEXT DEFAULT 'Pending',"            // Pending / Paid / Rejected
-        "remarks TEXT,"                             // Additional remarks
-        "created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-
-        "FOREIGN KEY (emp_id) REFERENCES employees(emp_id),"
-        "UNIQUE(emp_id, month_year),"               // Only one payroll per emp per month
+        "    payroll_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "    emp_id INTEGER NOT NULL,"
+        "    month_year TEXT NOT NULL,"
+        "    basic_salary REAL NOT NULL,"
+        "    house_rent REAL DEFAULT 0,"
+        "    medical REAL DEFAULT 0,"
+        "    conveyance REAL DEFAULT 0,"
+        "    dearness_allowance REAL DEFAULT 0,"
+        "    performance_bonus REAL DEFAULT 0,"
+        "    other_allowances REAL DEFAULT 0,"
+        "    total_allowances REAL,"
+        "    income_tax REAL DEFAULT 0,"
+        "    provident_fund REAL DEFAULT 0,"
+        "    health_insurance REAL DEFAULT 0,"
+        "    loan_deduction REAL DEFAULT 0,"
+        "    other_deductions REAL DEFAULT 0,"
+        "    total_deductions REAL,"
+        "    net_salary REAL,"
+        "    payment_date DATE,"
+        "    payment_method TEXT,"
+        "    status TEXT DEFAULT 'Pending',"
+        "    remarks TEXT,"
+        "    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+        "    FOREIGN KEY(emp_id) REFERENCES employees(emp_id),"
+        "    UNIQUE(emp_id, month_year)"
         ");",
         
         // Salary Slip table
         "CREATE TABLE IF NOT EXISTS salary_slips ("
-        "slip_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "payroll_id INTEGER NOT NULL,"              // FK to payroll
-        "emp_id INTEGER NOT NULL,"                  // FK to employees
-        "emp_no TEXT,"                              // Employee Number
-        "employee_name TEXT,"                       // Employee Name
-        "designation TEXT,"                         // Designation
-        "department TEXT,"                          // Department
-        
-        // PERIOD
-        "from_date DATE,"                           // Salary period from
-        "to_date DATE,"                             // Salary period to
-        "slip_date DATE,"                           // When slip was generated
-        
-        // SALARY COMPONENTS (Detailed breakdown)
-        "basic_salary REAL,"
-        "house_rent REAL,"
-        "medical REAL,"
-        "conveyance REAL,"
-        "dearness_allowance REAL,"
-        "performance_bonus REAL,"
-        "other_allowances REAL,"
-        "total_allowances REAL,"
-        
-        // DEDUCTIONS BREAKDOWN
-        "income_tax REAL,"
-        "provident_fund REAL,"
-        "health_insurance REAL,"
-        "loan_deduction REAL,"
-        "other_deductions REAL,"
-        "total_deductions REAL,"
-        "gross_salary REAL,"                        // Basic + Allowances
-        "net_salary REAL,"                          // Gross - Deductions
-        "payment_status TEXT,"                      // Paid / Pending
-        "FOREIGN KEY (payroll_id) REFERENCES payroll(payroll_id),"
-        "FOREIGN KEY (emp_id) REFERENCES employees(emp_id),"
+        "    slip_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "    payroll_id INTEGER NOT NULL,"
+        "    emp_id INTEGER NOT NULL,"
+        "    emp_no TEXT,"
+        "    employee_name TEXT,"
+        "    designation TEXT,"
+        "    department TEXT,"
+        "    from_date DATE,"
+        "    to_date DATE,"
+        "    slip_date DATE,"
+        "    basic_salary REAL,"
+        "    house_rent REAL,"
+        "    medical REAL,"
+        "    conveyance REAL,"
+        "    dearness_allowance REAL,"
+        "    performance_bonus REAL,"
+        "    other_allowances REAL,"
+        "    total_allowances REAL,"
+        "    income_tax REAL,"
+        "    provident_fund REAL,"
+        "    health_insurance REAL,"
+        "    loan_deduction REAL,"
+        "    other_deductions REAL,"
+        "    total_deductions REAL,"
+        "    gross_salary REAL,"
+        "    net_salary REAL,"
+        "    payment_status TEXT,"
+        "    FOREIGN KEY(payroll_id) REFERENCES payroll(payroll_id),"
+        "    FOREIGN KEY(emp_id) REFERENCES employees(emp_id)"
         ");",
 
         // Tally Sync Log table
