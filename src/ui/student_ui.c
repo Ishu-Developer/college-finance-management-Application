@@ -20,6 +20,7 @@ static GtkWidget *roll_no_entry;
 static GtkWidget *category_combo;
 static GtkWidget *mobile_entry;
 static GtkWidget *email_entry;
+static GtkWidget *error_label;  // ✅ NEW for validation messages
 
 void refresh_student_table() {
     printf("[INFO] Refreshing student table\n");
@@ -34,67 +35,63 @@ void refresh_student_table() {
     if (stmt == NULL) {
         printf("[WARNING] No students found in database\n");
         
-        // Add demo data if no students
-        printf("[INFO] Adding demo student data\n");
+        // Show "No students" message
         GtkTreeIter iter;
         gtk_list_store_append(store, &iter);
         gtk_list_store_set(store, &iter,
-            0, "✏️",           // Edit button
-            1, "🗑️",           // Delete button
-            2, "📷",           // Photo
-            3, 000,           //student_id 
-            4, "Raj Kumar",    // Name
-            5, "Male",         //Gender
-            6, "Om Kumar",       // Father Name
-            7, "CSE",          // Branch
-            8, 2,              // year
-            9, 4,              // Semester (as number)
-            10, "3562426782",   // Roll No
-            11, "OBC",           //Category
-            12, "9876543210",  // Mobile
-            13, "raj@mail.com", // Email
+            0, "—",
+            1, "—",
+            2, "—",
+            3, 0,
+            4, "No student added",
+            5, "—",
+            6, "—",
+            7, "—",
+            8, "—",
+            9, "—",
+            10, "—",
+            11, "—",
+            12, "—",
+            13, "—",
             -1);
-        printf("[INFO] Demo data loaded\n");
+        printf("[INFO] Empty state displayed\n");
         return;
     }
     
     int count = 0;
     while (sqlite3_step(stmt) == SQLITE_ROW) {
-        // ✅ Read all columns from database (updated for new schema)
         int student_id = sqlite3_column_int(stmt, 0);
-        int roll_no = sqlite3_column_int(stmt, 1);           // ✅ INTEGER
+        int roll_no = sqlite3_column_int(stmt, 1);
         const char *name = (const char *)sqlite3_column_text(stmt, 2);
         const char *branch = (const char *)sqlite3_column_text(stmt, 3);
-        int year = sqlite3_column_int(stmt, 4);             // ✅ NEW: Year
+        int year = sqlite3_column_int(stmt, 4);
         int semester = sqlite3_column_int(stmt, 5);
         
         printf("[DEBUG] Loading student: %s (Roll: %d, Year: %d)\n", name, roll_no, year);
         
-        // Format Year as string for display
-        char year_str[20];
+        char year_str[20] = {0};
         snprintf(year_str, sizeof(year_str), "%d", year);
         
-        // Format Roll No as string for display
         char roll_no_str[20];
         snprintf(roll_no_str, sizeof(roll_no_str), "%d", roll_no);
         
         GtkTreeIter iter;
         gtk_list_store_append(store, &iter);
         gtk_list_store_set(store, &iter,
-            0, "✏️",              // Edit button
-            1, "🗑️",              // Delete button
-            2, "📷",              // Photo
-            3, student_id,        // Student ID
-            4, name,              // Name
-            5, "—",               // Gender (TODO: fetch from db)
-            6, "—",               // Father Name (TODO: fetch from db)
-            7, branch,            // Branch
-            8, year_str,          // ✅ Year (NEW)
-            9, semester,          // Semester
-            10, roll_no_str,      // ✅ Roll No as string (INTEGER converted)
-            11, "—",              // ✅ Category (TODO: fetch from db)
-            12, "—",              // ✅ Mobile (TODO: fetch from db)
-            13, "—",              // Email (TODO: fetch from db)
+            0, "✏️",
+            1, "🗑️",
+            2, "📷",
+            3, student_id,
+            4, name,
+            5, "—",
+            6, "—",
+            7, branch,
+            8, year_str,
+            9, semester,
+            10, roll_no_str,
+            11, "—",
+            12, "—",
+            13, "—",
             -1);
         count++;
     }
@@ -156,6 +153,7 @@ void on_add_student_save_clicked(GtkButton *button, gpointer user_data) {
     (void)button;
     (void)user_data;
     
+    // Get form values
     const char *name = gtk_entry_get_text(GTK_ENTRY(name_entry));
     int gender_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(gender_combo));
     const char *gender = (gender_idx == 0) ? "Male" : (gender_idx == 1) ? "Female" : "Other";
@@ -166,67 +164,111 @@ void on_add_student_save_clicked(GtkButton *button, gpointer user_data) {
                         (branch_idx == 2) ? "CIVIL" : 
                         (branch_idx == 3) ? "ME" : "IT";
     
-    // ✅ Get Year (1-4)
     int year = gtk_combo_box_get_active(GTK_COMBO_BOX(year_combo)) + 1;
-    
     int semester = gtk_combo_box_get_active(GTK_COMBO_BOX(semester_combo)) + 1;
     
-    // ✅ Get Roll Number as INTEGER
     const char *roll_no_str = gtk_entry_get_text(GTK_ENTRY(roll_no_entry));
-    int roll_no = atoi(roll_no_str);  // Convert string to int
+    int roll_no = atoi(roll_no_str);
     
-    // ✅ Get Category
     int category_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(category_combo));
     const char *category = (category_idx == 0) ? "General" : 
                           (category_idx == 1) ? "OBC" : 
                           (category_idx == 2) ? "SC/ST" : "EWS";
     
-    // ✅ Get Mobile as INTEGER (10 digits)
     const char *mobile_str = gtk_entry_get_text(GTK_ENTRY(mobile_entry));
-    long long mobile = atoll(mobile_str);  // Convert string to long long
+    long long mobile = atoll(mobile_str);
     
     const char *email = gtk_entry_get_text(GTK_ENTRY(email_entry));
     
     printf("[INFO] Add Student - Validating input\n");
-    printf("[DEBUG] Name: %s, Roll: %d, Year: %d, Mobile: %lld\n", 
-           name, roll_no, year, mobile);
+    printf("[DEBUG] Name: %s, Roll: %d, Year: %d, Mobile: %s\n", 
+           name, roll_no, year, mobile_str);
     
-    // Validation
-    if (roll_no <= 0) {
-        GtkWidget *dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL,
-            GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, "❌ Roll Number must be positive integer!");
-        gtk_dialog_run(GTK_DIALOG(dialog));
-        gtk_widget_destroy(dialog);
+    // ✅ UPDATED VALIDATIONS - Using STRING-based validators
+    
+    // Validate Roll Number (STRING input)
+    if (!validate_roll_no(roll_no_str)) {
+        gtk_label_set_text(GTK_LABEL(error_label), 
+            "❌ Invalid Roll No (must be 1001-999999)");
+        gtk_widget_show(error_label);
+        printf("[WARNING] Invalid roll number: %s\n", roll_no_str);
         return;
     }
     
-    if (strlen(mobile_str) != 10) {
-        GtkWidget *dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL,
-            GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, "❌ Mobile must be exactly 10 digits!");
-        gtk_dialog_run(GTK_DIALOG(dialog));
-        gtk_widget_destroy(dialog);
-        return;
-    }
-    
+    // Validate Name
     if (!validate_name(name)) {
-        GtkWidget *dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL,
-            GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, "❌ Name contains invalid characters!");
-        gtk_dialog_run(GTK_DIALOG(dialog));
-        gtk_widget_destroy(dialog);
+        gtk_label_set_text(GTK_LABEL(error_label), 
+            "❌ Name must be 3-100 letters (no numbers)");
+        gtk_widget_show(error_label);
+        printf("[WARNING] Invalid name: %s\n", name);
         return;
     }
     
+    // Validate Year
+    char year_str[20] = {0};        
+    snprintf(year_str, sizeof(year_str), "%d", year); 
+    if (!validate_year(year_str)) {
+        gtk_label_set_text(GTK_LABEL(error_label), 
+            "❌ Year must be 1-4");
+        gtk_widget_show(error_label);
+        return;
+    }
+    
+    // Validate Semester
+    char semester_str[20] = {0};    
+    snprintf(semester_str, sizeof(semester_str), "%d", semester); 
+    if (!validate_semester(semester_str)) {
+        gtk_label_set_text(GTK_LABEL(error_label), 
+            "❌ Semester must be 1-8");
+        gtk_widget_show(error_label);
+        return;
+    }
+    
+    // Validate Mobile (STRING: exactly 10 digits as string)
+    if (!validate_mobile(mobile_str)) {
+        gtk_label_set_text(GTK_LABEL(error_label), 
+            "❌ Mobile must be exactly 10 digits (6-9 start)");
+        gtk_widget_show(error_label);
+        printf("[WARNING] Invalid mobile: %s\n", mobile_str);
+        return;
+    }
+    
+    // Validate Email
     if (!validate_email(email)) {
-        GtkWidget *dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL,
-            GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, "❌ Invalid email format!");
-        gtk_dialog_run(GTK_DIALOG(dialog));
-        gtk_widget_destroy(dialog);
+        gtk_label_set_text(GTK_LABEL(error_label), 
+            "❌ Invalid email format");
+        gtk_widget_show(error_label);
+        printf("[WARNING] Invalid email: %s\n", email);
+        return;
+    }
+    
+    // Validate Gender
+    if (!validate_gender(gender)) {
+        gtk_label_set_text(GTK_LABEL(error_label), 
+            "❌ Invalid gender");
+        gtk_widget_show(error_label);
+        return;
+    }
+    
+    // Validate Branch
+    if (!validate_branch(branch)) {
+        gtk_label_set_text(GTK_LABEL(error_label), 
+            "❌ Invalid branch");
+        gtk_widget_show(error_label);
+        return;
+    }
+    
+    // Validate Category
+    if (!validate_category(category)) {
+        gtk_label_set_text(GTK_LABEL(error_label), 
+            "❌ Invalid category");
+        gtk_widget_show(error_label);
         return;
     }
     
     printf("[INFO] All validations passed - Adding student\n");
     
-    // ✅ CORRECTED FUNCTION CALL with all parameters
+    // Add student to database
     int result = db_add_student(name, gender, father_name, branch, year, semester, 
                                roll_no, category, mobile, email);
     
@@ -235,12 +277,12 @@ void on_add_student_save_clicked(GtkButton *button, gpointer user_data) {
         
         GtkWidget *dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL,
             GTK_MESSAGE_INFO, GTK_BUTTONS_OK,
-            "✅ Student Added Successfully!\nStudent ID: %d\nName: %s\nRoll: %d\nYear: %d\nMobile: %lld", 
-            result, name, roll_no, year, mobile);
+            "✅ Student Added Successfully!\nStudent ID: %d\nName: %s\nRoll: %d", 
+            result, name, roll_no);
         gtk_dialog_run(GTK_DIALOG(dialog));
         gtk_widget_destroy(dialog);
         
-        // Clear form fields
+        // Clear form
         gtk_entry_set_text(GTK_ENTRY(name_entry), "");
         gtk_combo_box_set_active(GTK_COMBO_BOX(gender_combo), 0);
         gtk_entry_set_text(GTK_ENTRY(father_name_entry), "");
@@ -251,20 +293,18 @@ void on_add_student_save_clicked(GtkButton *button, gpointer user_data) {
         gtk_combo_box_set_active(GTK_COMBO_BOX(category_combo), 0);
         gtk_entry_set_text(GTK_ENTRY(mobile_entry), "");
         gtk_entry_set_text(GTK_ENTRY(email_entry), "");
-        
         gtk_label_set_text(GTK_LABEL(photo_label), "📷 No photo selected");
         strcpy(photo_path, "");
+        gtk_widget_hide(error_label);
         
         refresh_student_table();
     } else {
         printf("[ERROR] Failed to add student\n");
-        GtkWidget *dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL,
-            GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, "❌ Failed to add student!");
-        gtk_dialog_run(GTK_DIALOG(dialog));
-        gtk_widget_destroy(dialog);
+        gtk_label_set_text(GTK_LABEL(error_label), 
+            "❌ Database error: Failed to add student");
+        gtk_widget_show(error_label);
     }
 }
-
 
 void on_add_student_clicked(GtkButton *button, gpointer user_data) {
     (void)button;
@@ -275,9 +315,11 @@ void on_add_student_clicked(GtkButton *button, gpointer user_data) {
     if (gtk_widget_get_visible(form_box)) {
         printf("[INFO] Hiding form\n");
         gtk_widget_hide(form_box);
+        gtk_widget_hide(error_label);
     } else {
         printf("[INFO] Showing form\n");
         gtk_widget_show_all(form_box);
+        gtk_widget_hide(error_label);  // Hide error on new form
         gtk_widget_grab_focus(roll_no_entry);
     }
 }
@@ -333,7 +375,7 @@ void on_search_student_clicked(GtkButton *button, gpointer user_data) {
 }
 
 void create_student_ui(GtkWidget *container) {
-    printf("[INFO] Creating Student Management UI with full table layout\n");
+    printf("[INFO] Creating Student Management UI\n");
     
     GtkWidget *main_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
     gtk_container_add(GTK_CONTAINER(container), main_box);
@@ -376,8 +418,15 @@ void create_student_ui(GtkWidget *container) {
     
     GtkWidget *form_title = gtk_label_new(NULL);
     gtk_label_set_markup(GTK_LABEL(form_title),
-        "<span font='12' weight='bold'>Add New Student</span>");
+        "<span font='12' weight='bold'>➕ Add New Student</span>");
     gtk_box_pack_start(GTK_BOX(form_box), form_title, FALSE, FALSE, 0);
+    
+    // ✅ NEW: Error label for validation messages
+    error_label = gtk_label_new("");
+    gtk_label_set_use_markup(GTK_LABEL(error_label), TRUE);
+    gtk_widget_set_halign(error_label, GTK_ALIGN_START);
+    gtk_box_pack_start(GTK_BOX(form_box), error_label, FALSE, FALSE, 0);
+    gtk_widget_hide(error_label);
     
     GtkWidget *grid = gtk_grid_new();
     gtk_grid_set_column_spacing(GTK_GRID(grid), 10);
@@ -398,14 +447,14 @@ void create_student_ui(GtkWidget *container) {
     gtk_widget_set_halign(roll_label, GTK_ALIGN_START);
     gtk_grid_attach(GTK_GRID(grid), roll_label, 0, 1, 1, 1);
     roll_no_entry = gtk_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(roll_no_entry), "Roll Number");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(roll_no_entry), "1001-999999");
     gtk_grid_attach(GTK_GRID(grid), roll_no_entry, 1, 1, 1, 1);
     
     GtkWidget *name_label = gtk_label_new("Name:");
     gtk_widget_set_halign(name_label, GTK_ALIGN_START);
     gtk_grid_attach(GTK_GRID(grid), name_label, 2, 1, 1, 1);
     name_entry = gtk_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(name_entry), "Student Name");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(name_entry), "Full Name");
     gtk_grid_attach(GTK_GRID(grid), name_entry, 3, 1, 1, 1);
     
     // Row 2: Father Name and Gender
@@ -426,22 +475,19 @@ void create_student_ui(GtkWidget *container) {
     gtk_combo_box_set_active(GTK_COMBO_BOX(gender_combo), 0);
     gtk_grid_attach(GTK_GRID(grid), gender_combo, 3, 2, 1, 1);
     
-    // In create_student_ui() function, in the grid, add these rows:
-
-    // Row 3: Branch, Year, and Semester (UPDATED)
+    // Row 3: Branch, Year, and Semester
     GtkWidget *branch_label = gtk_label_new("Branch:");
     gtk_widget_set_halign(branch_label, GTK_ALIGN_START);
     gtk_grid_attach(GTK_GRID(grid), branch_label, 0, 3, 1, 1);
     branch_combo = gtk_combo_box_text_new();
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(branch_combo), "CSE");
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(branch_combo), "EE");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(branch_combo), "IT");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(branch_combo), "ECE");
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(branch_combo), "CIVIL");
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(branch_combo), "ME");
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(branch_combo), "IT");
     gtk_combo_box_set_active(GTK_COMBO_BOX(branch_combo), 0);
     gtk_grid_attach(GTK_GRID(grid), branch_combo, 1, 3, 1, 1);
     
-    // ✅ NEW: Year dropdown
     GtkWidget *year_label = gtk_label_new("Year:");
     gtk_widget_set_halign(year_label, GTK_ALIGN_START);
     gtk_grid_attach(GTK_GRID(grid), year_label, 2, 3, 1, 1);
@@ -453,23 +499,19 @@ void create_student_ui(GtkWidget *container) {
     gtk_combo_box_set_active(GTK_COMBO_BOX(year_combo), 0);
     gtk_grid_attach(GTK_GRID(grid), year_combo, 3, 3, 1, 1);
     
-    // Row 4: Semester and Category (UPDATED)
+    // Row 4: Semester and Category
     GtkWidget *semester_label = gtk_label_new("Semester:");
     gtk_widget_set_halign(semester_label, GTK_ALIGN_START);
     gtk_grid_attach(GTK_GRID(grid), semester_label, 0, 4, 1, 1);
     semester_combo = gtk_combo_box_text_new();
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(semester_combo), "1st");
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(semester_combo), "2nd");
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(semester_combo), "3rd");
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(semester_combo), "4th");
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(semester_combo), "5th");
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(semester_combo), "6th");
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(semester_combo), "7th");
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(semester_combo), "8th");
+    for (int i = 1; i <= 8; i++) {
+        char sem_text[10];
+        snprintf(sem_text, sizeof(sem_text), "Sem %d", i);
+        gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(semester_combo), sem_text);
+    }
     gtk_combo_box_set_active(GTK_COMBO_BOX(semester_combo), 0);
     gtk_grid_attach(GTK_GRID(grid), semester_combo, 1, 4, 1, 1);
     
-    // ✅ NEW: Category dropdown
     GtkWidget *category_label = gtk_label_new("Category:");
     gtk_widget_set_halign(category_label, GTK_ALIGN_START);
     gtk_grid_attach(GTK_GRID(grid), category_label, 2, 4, 1, 1);
@@ -481,7 +523,7 @@ void create_student_ui(GtkWidget *container) {
     gtk_combo_box_set_active(GTK_COMBO_BOX(category_combo), 0);
     gtk_grid_attach(GTK_GRID(grid), category_combo, 3, 4, 1, 1);
     
-    // Row 5: Mobile (updated row number)
+    // Row 5: Mobile
     GtkWidget *mobile_label = gtk_label_new("Mobile (10 digits):");
     gtk_widget_set_halign(mobile_label, GTK_ALIGN_START);
     gtk_grid_attach(GTK_GRID(grid), mobile_label, 0, 5, 1, 1);
@@ -489,14 +531,14 @@ void create_student_ui(GtkWidget *container) {
     gtk_entry_set_placeholder_text(GTK_ENTRY(mobile_entry), "9876543210");
     gtk_grid_attach(GTK_GRID(grid), mobile_entry, 1, 5, 3, 1);
     
-    // Row 6: Email (updated row number)
+    // Row 6: Email
     GtkWidget *email_label = gtk_label_new("Email:");
     gtk_widget_set_halign(email_label, GTK_ALIGN_START);
     gtk_grid_attach(GTK_GRID(grid), email_label, 0, 6, 1, 1);
     email_entry = gtk_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(email_entry), "example@domain.com");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(email_entry), "student@example.com");
     gtk_grid_attach(GTK_GRID(grid), email_entry, 1, 6, 3, 1);
-
+    
     // Form Buttons
     GtkWidget *form_button_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
     gtk_box_pack_start(GTK_BOX(form_box), form_button_box, FALSE, FALSE, 5);
@@ -507,7 +549,7 @@ void create_student_ui(GtkWidget *container) {
     gtk_box_pack_start(GTK_BOX(form_button_box), save_btn, FALSE, FALSE, 0);
     
     // ====================================================================
-    // STUDENT TABLE WITH ALL COLUMNS & PROPER WIDTHS
+    // STUDENT TABLE WITH ALL COLUMNS
     // ====================================================================
     
     GtkWidget *table_label = gtk_label_new(NULL);
@@ -515,14 +557,11 @@ void create_student_ui(GtkWidget *container) {
     gtk_widget_set_halign(table_label, GTK_ALIGN_START);
     gtk_box_pack_start(GTK_BOX(main_box), table_label, FALSE, FALSE, 5);
     
-    // Scrolled window for table
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll),
         GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
     gtk_box_pack_start(GTK_BOX(main_box), scroll, TRUE, TRUE, 0);
     
-    // Create list store with 13 columns
-        // ✅ CORRECTED: 14 columns total
     GtkListStore *store = gtk_list_store_new(14,
         G_TYPE_STRING,  // 0: Edit
         G_TYPE_STRING,  // 1: Delete
@@ -532,113 +571,40 @@ void create_student_ui(GtkWidget *container) {
         G_TYPE_STRING,  // 5: Gender
         G_TYPE_STRING,  // 6: Father Name
         G_TYPE_STRING,  // 7: Branch
-        G_TYPE_INT,     // 8: Year (✅ Added)
+        G_TYPE_STRING,  // 8: Year
         G_TYPE_INT,     // 9: Semester
-        G_TYPE_INT,     // 10: Roll No (✅ INTEGER)
-        G_TYPE_STRING,  // 11: Category (✅ Added)
-        G_TYPE_INT,     // 12: Mobile (✅ INTEGER)
+        G_TYPE_STRING,  // 10: Roll No
+        G_TYPE_STRING,  // 11: Category
+        G_TYPE_STRING,  // 12: Mobile
         G_TYPE_STRING   // 13: Email
     );
-
     
-        // Create tree view
     student_table = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
     g_object_unref(G_OBJECT(store));
     gtk_tree_view_set_grid_lines(GTK_TREE_VIEW(student_table), GTK_TREE_VIEW_GRID_LINES_BOTH);
     gtk_container_add(GTK_CONTAINER(scroll), student_table);
     
-    // Add columns with fixed widths
+    // Add columns
     GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
     GtkTreeViewColumn *col;
     
-    // Column 0: Edit button
-    col = gtk_tree_view_column_new_with_attributes("✏️ Edit", renderer, "text", 0, NULL);
-    gtk_tree_view_column_set_fixed_width(col, 50);
-    gtk_tree_view_column_set_sizing(col, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(student_table), col);
+    const char *col_titles[] = {
+        "✏️", "🗑️", "📷", "ID", "👤 Name", "Gender", "Father Name", 
+        "Branch", "Year", "Sem", "📝 Roll No", "Category", "📞 Mobile", "📧 Email"
+    };
+    int col_widths[] = {40, 40, 40, 40, 120, 70, 120, 70, 50, 45, 110, 90, 110, 150};
     
-    // Column 1: Delete button
-    col = gtk_tree_view_column_new_with_attributes("🗑️ Del", renderer, "text", 1, NULL);
-    gtk_tree_view_column_set_fixed_width(col, 50);
-    gtk_tree_view_column_set_sizing(col, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(student_table), col);
-    
-    // Column 2: Photo
-    col = gtk_tree_view_column_new_with_attributes("📷", renderer, "text", 2, NULL);
-    gtk_tree_view_column_set_fixed_width(col, 40);
-    gtk_tree_view_column_set_sizing(col, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(student_table), col);
-    
-    // Column 3: Student ID
-    col = gtk_tree_view_column_new_with_attributes("ID", renderer, "text", 3, NULL);
-    gtk_tree_view_column_set_fixed_width(col, 40);
-    gtk_tree_view_column_set_sizing(col, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(student_table), col);
-    
-    // Column 4: Name
-    col = gtk_tree_view_column_new_with_attributes("👤 Name", renderer, "text", 4, NULL);
-    gtk_tree_view_column_set_fixed_width(col, 120);
-    gtk_tree_view_column_set_sizing(col, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(student_table), col);
-    
-    // Column 5: Gender (✅ NEW)
-    col = gtk_tree_view_column_new_with_attributes("Gender", renderer, "text", 5, NULL);
-    gtk_tree_view_column_set_fixed_width(col, 70);
-    gtk_tree_view_column_set_sizing(col, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(student_table), col);
-    
-    // Column 6: Father Name
-    col = gtk_tree_view_column_new_with_attributes("Father Name", renderer, "text", 6, NULL);
-    gtk_tree_view_column_set_fixed_width(col, 120);
-    gtk_tree_view_column_set_sizing(col, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(student_table), col);
-    
-    // Column 7: Branch
-    col = gtk_tree_view_column_new_with_attributes("Branch", renderer, "text", 7, NULL);
-    gtk_tree_view_column_set_fixed_width(col, 70);
-    gtk_tree_view_column_set_sizing(col, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(student_table), col);
-    
-    // Column 8: Year (✅ NEW)
-    col = gtk_tree_view_column_new_with_attributes("Year", renderer, "text", 8, NULL);
-    gtk_tree_view_column_set_fixed_width(col, 50);
-    gtk_tree_view_column_set_sizing(col, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(student_table), col);
-    
-    // Column 9: Semester
-    col = gtk_tree_view_column_new_with_attributes("Sem", renderer, "text", 9, NULL);
-    gtk_tree_view_column_set_fixed_width(col, 45);
-    gtk_tree_view_column_set_sizing(col, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(student_table), col);
-    
-    // Column 10: Roll No (✅ INTEGER)
-    col = gtk_tree_view_column_new_with_attributes("📝 Roll No", renderer, "text", 10, NULL);
-    gtk_tree_view_column_set_fixed_width(col, 110);
-    gtk_tree_view_column_set_sizing(col, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(student_table), col);
-    
-    // Column 11: Category (✅ NEW)
-    col = gtk_tree_view_column_new_with_attributes("Category", renderer, "text", 11, NULL);
-    gtk_tree_view_column_set_fixed_width(col, 90);
-    gtk_tree_view_column_set_sizing(col, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(student_table), col);
-    
-    // Column 12: Mobile (✅ INTEGER)
-    col = gtk_tree_view_column_new_with_attributes("📞 Mobile", renderer, "text", 12, NULL);
-    gtk_tree_view_column_set_fixed_width(col, 110);
-    gtk_tree_view_column_set_sizing(col, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(student_table), col);
-    
-    // Column 13: Email
-    col = gtk_tree_view_column_new_with_attributes("📧 Email", renderer, "text", 13, NULL);
-    gtk_tree_view_column_set_fixed_width(col, 150);
-    gtk_tree_view_column_set_sizing(col, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(student_table), col);
+    for (int i = 0; i < 14; i++) {
+        col = gtk_tree_view_column_new_with_attributes(col_titles[i], renderer, "text", i, NULL);
+        gtk_tree_view_column_set_fixed_width(col, col_widths[i]);
+        gtk_tree_view_column_set_sizing(col, GTK_TREE_VIEW_COLUMN_FIXED);
+        gtk_tree_view_append_column(GTK_TREE_VIEW(student_table), col);
+    }
     
     gtk_widget_show_all(container);
     gtk_widget_hide(form_box);
-    printf("[INFO] Student Management UI created successfully with 14 columns\n");
+    gtk_widget_hide(error_label);
+    printf("[INFO] Student Management UI created successfully\n");
     
-    // Load students on startup
     refresh_student_table();
 }
