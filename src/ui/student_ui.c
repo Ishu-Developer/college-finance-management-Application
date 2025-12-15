@@ -62,41 +62,43 @@ void refresh_student_table() {
     
     int count = 0;
     while (sqlite3_step(stmt) == SQLITE_ROW) {
-        int student_id = sqlite3_column_int(stmt, 0);
-        int roll_no = sqlite3_column_int(stmt, 1);
-        const char *name = (const char *)sqlite3_column_text(stmt, 2);
-        const char *branch = (const char *)sqlite3_column_text(stmt, 3);
-        int year = sqlite3_column_int(stmt, 4);
-        int semester = sqlite3_column_int(stmt, 5);
-        
-        printf("[DEBUG] Loading student: %s (Roll: %d, Year: %d)\n", name, roll_no, year);
-        
-        char year_str[20] = {0};
-        snprintf(year_str, sizeof(year_str), "%d", year);
-        
-        char roll_no_str[20];
-        snprintf(roll_no_str, sizeof(roll_no_str), "%d", roll_no);
-        
-        GtkTreeIter iter;
-        gtk_list_store_append(store, &iter);
-        gtk_list_store_set(store, &iter,
-            0, "✏️",
-            1, "🗑️",
-            2, "📷",
-            3, student_id,
-            4, name,
-            5, "—",
-            6, "—",
-            7, branch,
-            8, year_str,
-            9, semester,
-            10, roll_no_str,
-            11, "—",
-            12, "—",
-            13, "—",
-            -1);
-        count++;
+    int student_id   = sqlite3_column_int(stmt, 0);
+    int roll_no      = sqlite3_column_int(stmt, 1);
+    const char *name = (const char *)sqlite3_column_text(stmt, 2);
+    const char *gender = (const char *)sqlite3_column_text(stmt, 3);
+    const char *father = (const char *)sqlite3_column_text(stmt, 4);
+    const char *branch = (const char *)sqlite3_column_text(stmt, 5);
+    int year        = sqlite3_column_int(stmt, 6);
+    int semester    = sqlite3_column_int(stmt, 7);
+    const char *category = (const char *)sqlite3_column_text(stmt, 8);
+    const char *mobile   = (const char *)sqlite3_column_text(stmt, 9);
+    const char *email    = (const char *)sqlite3_column_text(stmt,10);
+
+    char year_str[20];
+    snprintf(year_str, sizeof(year_str), "%d", year);
+    char roll_no_str[20];
+    snprintf(roll_no_str, sizeof(roll_no_str), "%d", roll_no);
+
+    GtkTreeIter iter;
+    gtk_list_store_append(store, &iter);
+    gtk_list_store_set(store, &iter,
+        0, "✏️",
+        1, "🗑️",
+        2, "📷",
+        3, student_id,
+        4, name,
+        5, gender ? gender : "—",
+        6, father ? father : "—",
+        7, branch ? branch : "—",
+        8, year_str,
+        9, semester,
+        10, roll_no_str,
+        11, category ? category : "—",
+        12, mobile ? mobile : "—",
+        13, email ? email : "—",
+        -1);
     }
+
     
     sqlite3_finalize(stmt);
     printf("[INFO] Loaded %d students from database\n", count);
@@ -413,45 +415,43 @@ void on_search_perform_inline(GtkButton *button, gpointer user_data) {
     
     if (stmt != NULL) {
         while (sqlite3_step(stmt) == SQLITE_ROW) {
-            int roll_no = sqlite3_column_int(stmt, 1);
-            
-            // ✅ FIXED: char instead of char
-            char roll_str[20];
-            snprintf(roll_str, sizeof(roll_str), "%d", roll_no);
-            
-            if (strcmp(roll_str, roll_no_str) == 0) {
-                const char *name = (const char *)sqlite3_column_text(stmt, 2);
-                const char *branch = (const char *)sqlite3_column_text(stmt, 3);
-                int year = sqlite3_column_int(stmt, 4);
-                int semester = sqlite3_column_int(stmt, 5);
-                
-                // ✅ FIXED: char instead of char
-                char year_str[20];
-                snprintf(year_str, sizeof(year_str), "%d", year);
-                
-                GtkTreeIter iter;
-                gtk_list_store_append(store, &iter);
-                gtk_list_store_set(store, &iter,
-                    0, "✏️", 
-                    1, "🗑️", 
-                    2, "📷",
-                    3, sqlite3_column_int(stmt, 0),
-                    4, name, 
-                    5, "—", 
-                    6, "—",
-                    7, branch, 
-                    8, year_str, 
-                    9, semester,
-                    10, roll_str, 
-                    11, "—", 
-                    12, "—", 
-                    13, "—",
-                    -1);
-                
-                found = 1;
-                break;
-            }
+        int student_id   = sqlite3_column_int(stmt, 0);
+        int roll_no      = sqlite3_column_int(stmt, 1);
+        const char *name = (const char *)sqlite3_column_text(stmt, 2);
+        const char *gender = (const char *)sqlite3_column_text(stmt, 3);
+        const char *father = (const char *)sqlite3_column_text(stmt, 4);
+        const char *branch = (const char *)sqlite3_column_text(stmt, 5);
+        int year        = sqlite3_column_int(stmt, 6);
+        int semester    = sqlite3_column_int(stmt, 7);
+        const char *category = (const char *)sqlite3_column_text(stmt, 8);
+        const char *mobile   = (const char *)sqlite3_column_text(stmt, 9);
+        const char *email    = (const char *)sqlite3_column_text(stmt,10);
+
+        char year_str[20];
+        snprintf(year_str, sizeof(year_str), "%d", year);
+        char roll_no_str[20];
+        snprintf(roll_no_str, sizeof(roll_no_str), "%d", roll_no);
+
+        GtkTreeIter iter;
+        gtk_list_store_append(store, &iter);
+        gtk_list_store_set(store, &iter,
+            0, "✏️",
+            1, "🗑️",
+            2, "📷",
+            3, student_id,
+            4, name,
+            5, gender ? gender : "—",
+            6, father ? father : "—",
+            7, branch ? branch : "—",
+            8, year_str,
+            9, semester,
+            10, roll_no_str,
+            11, category ? category : "—",
+            12, mobile ? mobile : "—",
+            13, email ? email : "—",
+            -1);
         }
+
         sqlite3_finalize(stmt);
     }
     

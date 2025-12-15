@@ -186,7 +186,10 @@ sqlite3_stmt* db_get_all_students() {
         return NULL;
     }
     
-    const char *sql = "SELECT student_id, roll_no, name, branch, year, semester, mobile FROM students ORDER BY student_id DESC;";
+    const char *sql =
+    "SELECT student_id, roll_no, name, gender, father_name, branch, "
+    "year, semester, category, mobile, email "
+    "FROM students ORDER BY student_id DESC;";
     sqlite3_stmt *stmt = NULL;
     
     int result = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
@@ -224,14 +227,15 @@ sqlite3_stmt* db_get_students_by_branch(const char *branch) {
 
 int db_get_student_count() {
     if (db == NULL) {
+        printf("[ERROR] Database not connected\n");
         return 0;
     }
     
-    const char *sql = "SELECT COUNT(*) FROM Students;";
-    sqlite3_stmt *stmt = NULL;
+    const char *sql = "SELECT COUNT(*) FROM students";
+    sqlite3_stmt *stmt;
     
-    int result = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
-    if (result != SQLITE_OK || stmt == NULL) {
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        printf("[ERROR] Failed to prepare count statement: %s\n", sqlite3_errmsg(db));
         return 0;
     }
     
@@ -241,5 +245,6 @@ int db_get_student_count() {
     }
     
     sqlite3_finalize(stmt);
+    printf("[INFO] Total students in database: %d\n", count);
     return count;
 }

@@ -4,11 +4,9 @@
 #include <string.h>
 #include "../include/database.h"
 
-
 // Global database connection
 sqlite3 *db = NULL;
 static char db_error_msg[512] = {0};
-
 
 int db_init(const char *db_path) {
     int rc = sqlite3_open(db_path ? db_path : "college_finance.db", &db);
@@ -24,11 +22,13 @@ int db_init(const char *db_path) {
     return 1;
 }
 
-
 const char* db_get_error() {
     return db_error_msg;
 }
 
+const char* db_payroll_get_error() {
+    return db_error_msg;
+}
 
 int db_create_tables() {
     if (db == NULL) {
@@ -36,22 +36,21 @@ int db_create_tables() {
         return 0;
     }
 
-    // SQL statements array - each complete CREATE TABLE is a separate string
     const char *sql_statements[] = {
         // Students table
-        "CREATE TABLE IF NOT EXISTS students ("
-        "    student_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "    roll_no INTEGER UNIQUE NOT NULL,"
-        "    name TEXT NOT NULL,"
-        "    gender TEXT NOT NULL,"
-        "    father_name TEXT NOT NULL,"
-        "    branch TEXT NOT NULL,"
-        "    year INTEGER NOT NULL,"
-        "    semester INTEGER NOT NULL,"
-        "    category TEXT NOT NULL,"
-        "    mobile INTEGER NOT NULL,"
-        "    email TEXT,"
-        "    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+        "CREATE TABLE IF NOT EXISTS Students ("
+        "  student_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "  roll_no INTEGER UNIQUE NOT NULL,"
+        "  name TEXT NOT NULL,"
+        "  gender TEXT,"
+        "  father_name TEXT,"
+        "  branch TEXT,"
+        "  year INTEGER,"
+        "  semester INTEGER,"
+        "  category TEXT,"
+        "  mobile TEXT,"
+        "  email TEXT,"
+        "  created_at DATETIME DEFAULT CURRENT_TIMESTAMP"
         ");",
         
         // Fees table
@@ -65,30 +64,42 @@ int db_create_tables() {
         "    status TEXT DEFAULT 'Due',"
         "    payment_mode TEXT,"
         "    receipt_no TEXT UNIQUE,"
-        "    FOREIGN KEY(student_id) REFERENCES students(student_id)"
+        "    FOREIGN KEY(student_id) REFERENCES Students(student_id)"
         ");",
         
-        // Employees table
+        // UPDATED: Employees table with all 12 fields
         "CREATE TABLE IF NOT EXISTS employees ("
-        "emp_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "emp_no TEXT UNIQUE NOT NULL,"              // Employee Number (e.g., EMP001)
-        "employee_name TEXT NOT NULL,"              // ✅ Employee Name
-        "birth_date DATE,"                          // ✅ Birth Date (DOB)
-        "department TEXT NOT NULL,"                 // ✅ Department (CSE, EE, ME, etc)
-        "designation TEXT NOT NULL,"                // ✅ Designation (Professor, Asst Prof, etc)
-        "reporting_person TEXT,"                    // ✅ Reporting Person (Manager/HOD)
-        "email TEXT UNIQUE,"                        // ✅ Email Address
-        "mobile_number TEXT,"                       // ✅ Mobile Number (10 digits)
-        "base_salary REAL NOT NULL,"                // Base Salary
-        "joining_date DATE,"                        // Joining Date
-        "status TEXT DEFAULT 'Active',"             // Active/Inactive/On Leave
-        "address TEXT,"                             // Address (Optional)
-        "bank_account TEXT,"                        // Bank Account (Optional)
-        "created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+        "    emp_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "    emp_no INTEGER UNIQUE NOT NULL,"
+        "    emp_name TEXT NOT NULL,"
+        "    emp_dob TEXT,"
+        "    department TEXT NOT NULL,"
+        "    designation TEXT NOT NULL,"
+        "    category TEXT,"
+        "    reporting_person_name TEXT,"
+        "    reporting_person_id INTEGER,"
+        "    email TEXT UNIQUE,"
+        "    mobile_number TEXT NOT NULL,"
+        "    address TEXT,"
+        "    base_salary REAL NOT NULL,"
+        "    status TEXT DEFAULT 'Active',"
+        "    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
         ");",
-
         
-        // Payroll table ✅ FIXED
+        // NEW: Bank Details table
+        "CREATE TABLE IF NOT EXISTS bank_details ("
+        "    bank_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "    emp_id INTEGER UNIQUE NOT NULL,"
+        "    account_holder_name TEXT NOT NULL,"
+        "    account_number TEXT NOT NULL,"
+        "    bank_name TEXT NOT NULL,"
+        "    ifsc_code TEXT NOT NULL,"
+        "    bank_address TEXT,"
+        "    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+        "    FOREIGN KEY(emp_id) REFERENCES employees(emp_id) ON DELETE CASCADE"
+        ");",
+        
+        // Payroll table
         "CREATE TABLE IF NOT EXISTS payroll ("
         "    payroll_id INTEGER PRIMARY KEY AUTOINCREMENT,"
         "    emp_id INTEGER NOT NULL,"
@@ -149,7 +160,7 @@ int db_create_tables() {
         "    FOREIGN KEY(payroll_id) REFERENCES payroll(payroll_id),"
         "    FOREIGN KEY(emp_id) REFERENCES employees(emp_id)"
         ");",
-
+        
         // Tally Sync Log table
         "CREATE TABLE IF NOT EXISTS tally_sync_log ("
         "    sync_id INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -160,7 +171,7 @@ int db_create_tables() {
         "    error_message TEXT"
         ");",
         
-        NULL  // Terminator - marks end of array
+        NULL
     };
 
     // Execute all SQL statements
@@ -170,7 +181,7 @@ int db_create_tables() {
 
         if (rc != SQLITE_OK) {
             snprintf(db_error_msg, sizeof(db_error_msg),
-                    "SQL error: %s", err);
+                    "SQL error on statement %d: %s", i, err);
             fprintf(stderr, "[ERROR] %s\n", db_error_msg);
             sqlite3_free(err);
             return 0;
@@ -180,7 +191,6 @@ int db_create_tables() {
     printf("[INFO] All database tables created successfully\n");
     return 1;
 }
-
 
 void db_close() {
     if (db != NULL) {

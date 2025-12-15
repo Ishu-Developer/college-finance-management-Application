@@ -649,10 +649,3 @@ int db_add_salary_slip(const SalarySlip *slip) {
     return (int)slip_id;
 }
 
-/**
- * Get error message from last operation
- * @return Error message string
- */
-const char* db_payroll_get_error() {
-    return payroll_error_msg;
-}

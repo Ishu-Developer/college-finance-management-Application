@@ -69,8 +69,11 @@ GtkWidget* create_dashboard_ui() {
     gtk_grid_attach(GTK_GRID(stats_grid), stat1_title, 0, 0, 1, 1);
 
     GtkWidget *stat1_value = gtk_label_new(NULL);
-    gtk_label_set_markup(GTK_LABEL(stat1_value),
-        "<span font='18' weight='bold' color='#2196F3'>Loading...</span>");
+    int student_count = db_get_student_count();
+    char count_markup[100];
+    snprintf(count_markup, sizeof(count_markup),
+        "<span font='18' weight='bold' color='#2196F3'>%d</span>", student_count);
+    gtk_label_set_markup(GTK_LABEL(stat1_value), count_markup);
     gtk_grid_attach(GTK_GRID(stats_grid), stat1_value, 0, 1, 1, 1);
 
     // Stat 2: Total Employees
@@ -80,10 +83,12 @@ GtkWidget* create_dashboard_ui() {
     gtk_grid_attach(GTK_GRID(stats_grid), stat2_title, 1, 0, 1, 1);
 
     GtkWidget *stat2_value = gtk_label_new(NULL);
-    gtk_label_set_markup(GTK_LABEL(stat2_value),
-        "<span font='18' weight='bold' color='#FF9800'>Loading...</span>");
+    int employee_count = db_get_employee_count();  
+    char emp_markup[100];
+    snprintf(emp_markup, sizeof(emp_markup),
+        "<span font='18' weight='bold' color='#FF9800'>%d</span>", employee_count);
+    gtk_label_set_markup(GTK_LABEL(stat2_value), emp_markup);
     gtk_grid_attach(GTK_GRID(stats_grid), stat2_value, 1, 1, 1, 1);
-
     // Stat 3: Pending Fees
     GtkWidget *stat3_title = gtk_label_new(NULL);
     gtk_label_set_markup(GTK_LABEL(stat3_title),
@@ -147,7 +152,6 @@ GtkWidget* create_dashboard_ui() {
     GtkWidget *recent_text = gtk_label_new(
         "• System initialized\n"
         "• Database connected\n"
-        "• All modules ready\n"
         "• Waiting for user input..."
     );
     gtk_widget_set_halign(recent_text, GTK_ALIGN_START);
@@ -159,6 +163,12 @@ GtkWidget* create_dashboard_ui() {
         GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
     gtk_container_add(GTK_CONTAINER(scrolled), dashboard_box);
 
+    // ← ADD THIS:
+    gtk_widget_set_vexpand(scrolled, TRUE);      // Expand vertically
+    gtk_widget_set_hexpand(scrolled, TRUE);      // Expand horizontally
+    gtk_widget_set_vexpand_set(scrolled, TRUE);
+    gtk_widget_set_hexpand_set(scrolled, TRUE);
+
     printf("[INFO] Dashboard UI created successfully\n");
     return scrolled;
 }
@@ -167,7 +177,7 @@ void create_main_window() {
     main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(main_window),
         "CFMS - College Finance Management System");
-    gtk_window_set_default_size(GTK_WINDOW(main_window), 1000, 650);
+    gtk_window_set_default_size(GTK_WINDOW(main_window), 800, 600);
     gtk_window_set_position(GTK_WINDOW(main_window), GTK_WIN_POS_CENTER);
    
     printf("[INFO] Main window created\n");
@@ -187,7 +197,7 @@ void create_main_window() {
     // Subtitle 
     GtkWidget *subtitle_label = gtk_label_new(NULL);
     gtk_label_set_markup(GTK_LABEL(subtitle_label),
-        "<span font='12' style='italic' color='#fa8703ff'>"
+        "<span font='12' style='italic' foreground='#fa8703ff'>"
         "L.D.A.H Rajkiya Engineering College Mainpuri</span>");
     gtk_widget_set_halign(subtitle_label, GTK_ALIGN_CENTER);
     gtk_widget_set_margin_bottom(subtitle_label, 10);
@@ -195,6 +205,8 @@ void create_main_window() {
 
     // Content area (sidebar + notebook)
     GtkWidget *content_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_widget_set_vexpand(content_box, TRUE);    // ← ADD
+    gtk_widget_set_hexpand(content_box, TRUE);    // ← ADD
     gtk_box_pack_start(GTK_BOX(main_box), content_box, TRUE, TRUE, 0);
 
     // Sidebar
@@ -263,14 +275,16 @@ void create_main_window() {
     // Footer
     GtkWidget *footer = gtk_label_new(NULL);
     gtk_label_set_markup(GTK_LABEL(footer),
-        "<span color='#eeaf02ff' size='large'>"
+        "<span foreground='#eeaf02' size='large'>"  
         "<i>CFMS v1.0 | Developed by Ishu &amp; Mohsin | L.D.A.H Engineering College Mainpuri</i>"
         "</span>");
-    gtk_widget_set_size_request(footer, -1, 70);
+    gtk_widget_set_size_request(footer, -1, 40);
     gtk_widget_set_halign(footer, GTK_ALIGN_CENTER);
-    gtk_widget_set_margin_top(footer, 10);
-    gtk_widget_set_margin_bottom(footer, 50);
-    gtk_box_pack_start(GTK_BOX(main_box), footer, FALSE, TRUE, 0);
+    gtk_widget_set_valign(footer, GTK_ALIGN_CENTER);
+    gtk_widget_set_margin_top(footer, 5);
+    gtk_widget_set_margin_bottom(footer, 5);
+    gtk_box_pack_end(GTK_BOX(main_box), footer, FALSE, FALSE, 0);  // ← Use pack_end!
+    gtk_widget_show(footer);  // ← Explicitly show
 
     g_signal_connect(main_window, "destroy", G_CALLBACK(on_window_destroy), NULL);
     printf("[INFO] Main UI creation complete\n");
@@ -299,8 +313,6 @@ int main(int argc, char *argv[]) {
     create_main_window();
     printf("[INFO] Showing main window\n");
     gtk_widget_show_all(main_window);
-    
-    // Set Dashboard (page 0) as the initial visible page
     gtk_notebook_set_current_page(GTK_NOTEBOOK(content_notebook), 0);
     printf("[INFO] Dashboard loaded on startup\n");
     

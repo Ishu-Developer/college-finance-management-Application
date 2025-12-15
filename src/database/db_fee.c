@@ -1,179 +1,327 @@
 #include <stdio.h>
 #include <string.h>
 #include <sqlite3.h>
+#include <time.h>
 #include "../../include/database.h"
-#include "../../include/fee_ui.h"
 
-// External database connection
 extern sqlite3 *db;
+static char error_msg[256] = {0};
 
-/**
- * @brief Initialize fee table in database
- */
-int db_fee_init() {
+// ============================================================================
+// CREATE FEE TABLE
+// ============================================================================
+int db_create_fee_table() {
     const char *sql = 
-        "CREATE TABLE IF NOT EXISTS Fees ("
-        "  fee_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "  student_id INTEGER NOT NULL,"
-        "  roll_no TEXT NOT NULL,"
-        "  fee_type TEXT NOT NULL,"
-        "  amount REAL NOT NULL,"
-        "  amount_paid REAL DEFAULT 0.0,"
-        "  amount_due REAL NOT NULL,"
-        "  due_date TEXT NOT NULL,"
-        "  status TEXT DEFAULT 'Pending',"
-        "  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
-        "  FOREIGN KEY (student_id) REFERENCES Students(student_id)"
+        "CREATE TABLE IF NOT EXISTS fees ("
+        "    fee_id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "    roll_no INTEGER NOT NULL UNIQUE,"
+        "    institute_paid REAL DEFAULT 0,"
+        "    institute_date TEXT,"
+        "    institute_due REAL DEFAULT 0,"
+        "    institute_mode TEXT,"
+        "    hostel_paid REAL DEFAULT 0,"
+        "    hostel_date TEXT,"
+        "    hostel_due REAL DEFAULT 0,"
+        "    hostel_mode TEXT,"
+        "    mess_paid REAL DEFAULT 0,"
+        "    mess_date TEXT,"
+        "    mess_due REAL DEFAULT 0,"
+        "    mess_mode TEXT,"
+        "    other_paid REAL DEFAULT 0,"
+        "    other_date TEXT,"
+        "    other_due REAL DEFAULT 0,"
+        "    other_mode TEXT,"
+        "    total_paid REAL DEFAULT 0,"
+        "    total_due REAL DEFAULT 0,"
+        "    total_amount REAL DEFAULT 0,"
+        "    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+        "    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
+        "    created_by INTEGER,"
+        "    status INTEGER DEFAULT 0,"
+        "    FOREIGN KEY(roll_no) REFERENCES students(roll_no) ON DELETE CASCADE"
         ");";
     
     char *err_msg = 0;
     int rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
     
     if (rc != SQLITE_OK) {
-        printf("[ERROR] Failed to create Fees table: %s\n", err_msg);
+        snprintf(error_msg, sizeof(error_msg), "SQL Error: %s", err_msg);
         sqlite3_free(err_msg);
-        return -1;
+        printf("[ERROR] Failed to create fee table: %s\n", error_msg);
+        return 0;
     }
     
-    printf("[INFO] Fees table initialized successfully\n");
-    
-    // Create index on roll_no for faster searches
-    const char *index_sql = "CREATE INDEX IF NOT EXISTS idx_fee_rollno ON Fees(roll_no);";
-    rc = sqlite3_exec(db, index_sql, 0, 0, &err_msg);
-    
-    if (rc != SQLITE_OK) {
-        printf("[WARNING] Failed to create index: %s\n", err_msg);
-        sqlite3_free(err_msg);
-    }
-    
-    return 0;
+    printf("[INFO] Fee table created successfully\n");
+    return 1;
 }
 
-/**
- * @brief Add new fee record
- */
-int db_add_fee(const char *roll_no, const char *fee_type, double amount, const char *due_date) {
+// ============================================================================
+// SAVE NEW FEE RECORD
+// ============================================================================
+int db_save_fee_record(FeeRecord *fee) {
+    if (!fee) return 0;
     
-    if (!roll_no || !fee_type || !due_date || amount <= 0) {
-        printf("[ERROR] Invalid parameters in db_add_fee\n");
-        return -1;
-    }
+    // Calculate totals
+    fee->total_paid = fee->institute_paid + fee->hostel_paid + 
+                      fee->mess_paid + fee->other_paid;
+    fee->total_due = fee->institute_due + fee->hostel_due + 
+                     fee->mess_due + fee->other_due;
+    fee->total_amount = fee->total_paid + fee->total_due;
     
-    // Get student_id from roll_no
-    const char *get_id_sql = "SELECT student_id FROM Students WHERE roll_no = ?;";
-    sqlite3_stmt *id_stmt;
-    int rc = sqlite3_prepare_v2(db, get_id_sql, -1, &id_stmt, 0);
-    
-    if (rc != SQLITE_OK) {
-        printf("[ERROR] Failed to prepare get_id statement: %s\n", sqlite3_errmsg(db));
-        return -1;
-    }
-    
-    sqlite3_bind_text(id_stmt, 1, roll_no, -1, SQLITE_STATIC);
-    
-    int student_id = -1;
-    if (sqlite3_step(id_stmt) == SQLITE_ROW) {
-        student_id = sqlite3_column_int(id_stmt, 0);
-    }
-    sqlite3_finalize(id_stmt);
-    
-    if (student_id == -1) {
-        printf("[ERROR] Student with roll_no %s not found\n", roll_no);
-        return -1;
-    }
+    // Get current timestamp
+    time_t now = time(NULL);
+    struct tm *tm_info = localtime(&now);
+    strftime(fee->created_at, sizeof(fee->created_at), 
+             "%Y-%m-%d %H:%M:%S", tm_info);
+    strcpy(fee->updated_at, fee->created_at);
     
     const char *sql = 
-        "INSERT INTO Fees (student_id, roll_no, fee_type, amount, amount_due, due_date, status) "
-        "VALUES (?, ?, ?, ?, ?, ?, 'Pending');";
+        "INSERT INTO fees ("
+        "    roll_no, institute_paid, institute_date, institute_due, institute_mode,"
+        "    hostel_paid, hostel_date, hostel_due, hostel_mode,"
+        "    mess_paid, mess_date, mess_due, mess_mode,"
+        "    other_paid, other_date, other_due, other_mode,"
+        "    total_paid, total_due, total_amount,"
+        "    created_at, updated_at, status"
+        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     sqlite3_stmt *stmt;
-    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
     
     if (rc != SQLITE_OK) {
-        printf("[ERROR] Failed to prepare statement: %s\n", sqlite3_errmsg(db));
-        return -1;
+        snprintf(error_msg, sizeof(error_msg), "Prepare Error: %s", 
+                 sqlite3_errmsg(db));
+        printf("[ERROR] %s\n", error_msg);
+        return 0;
     }
     
-    sqlite3_bind_int(stmt, 1, student_id);
-    sqlite3_bind_text(stmt, 2, roll_no, -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 3, fee_type, -1, SQLITE_STATIC);
-    sqlite3_bind_double(stmt, 4, amount);
-    sqlite3_bind_double(stmt, 5, amount);  // Initially amount_due = amount
-    sqlite3_bind_text(stmt, 6, due_date, -1, SQLITE_STATIC);
+    // Bind values
+    sqlite3_bind_int(stmt, 1, fee->roll_no);
+    sqlite3_bind_double(stmt, 2, fee->institute_paid);
+    sqlite3_bind_text(stmt, 3, fee->institute_date, -1, SQLITE_STATIC);
+    sqlite3_bind_double(stmt, 4, fee->institute_due);
+    sqlite3_bind_text(stmt, 5, fee->institute_mode, -1, SQLITE_STATIC);
+    
+    sqlite3_bind_double(stmt, 6, fee->hostel_paid);
+    sqlite3_bind_text(stmt, 7, fee->hostel_date, -1, SQLITE_STATIC);
+    sqlite3_bind_double(stmt, 8, fee->hostel_due);
+    sqlite3_bind_text(stmt, 9, fee->hostel_mode, -1, SQLITE_STATIC);
+    
+    sqlite3_bind_double(stmt, 10, fee->mess_paid);
+    sqlite3_bind_text(stmt, 11, fee->mess_date, -1, SQLITE_STATIC);
+    sqlite3_bind_double(stmt, 12, fee->mess_due);
+    sqlite3_bind_text(stmt, 13, fee->mess_mode, -1, SQLITE_STATIC);
+    
+    sqlite3_bind_double(stmt, 14, fee->other_paid);
+    sqlite3_bind_text(stmt, 15, fee->other_date, -1, SQLITE_STATIC);
+    sqlite3_bind_double(stmt, 16, fee->other_due);
+    sqlite3_bind_text(stmt, 17, fee->other_mode, -1, SQLITE_STATIC);
+    
+    sqlite3_bind_double(stmt, 18, fee->total_paid);
+    sqlite3_bind_double(stmt, 19, fee->total_due);
+    sqlite3_bind_double(stmt, 20, fee->total_amount);
+    sqlite3_bind_text(stmt, 21, fee->created_at, -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 22, fee->updated_at, -1, SQLITE_STATIC);
+    sqlite3_bind_int(stmt, 23, fee->status);
     
     rc = sqlite3_step(stmt);
     
     if (rc != SQLITE_DONE) {
-        printf("[ERROR] Failed to insert fee: %s\n", sqlite3_errmsg(db));
+        snprintf(error_msg, sizeof(error_msg), "Execute Error: %s", 
+                 sqlite3_errmsg(db));
         sqlite3_finalize(stmt);
-        return -1;
+        printf("[ERROR] Failed to save fee: %s\n", error_msg);
+        return 0;
     }
     
-    int fee_id = sqlite3_last_insert_rowid(db);
+    fee->fee_id = (int)sqlite3_last_insert_rowid(db);
     sqlite3_finalize(stmt);
     
-    printf("[SUCCESS] Fee added with ID: %d (Roll: %s, Type: %s, Amount: %.2f)\n", 
-           fee_id, roll_no, fee_type, amount);
-    
-    return fee_id;
+    printf("[SUCCESS] Fee record saved for roll_no: %d (ID: %d)\n", 
+           fee->roll_no, fee->fee_id);
+    return 1;
 }
 
-/**
- * @brief Get all fees with student details
- */
-sqlite3_stmt* db_get_all_fees() {
-    const char *sql = 
-        "SELECT f.fee_id, f.student_id, f.roll_no, s.name, s.branch, s.semester, "
-        "f.fee_type, f.amount, f.amount_paid, f.amount_due, f.due_date, f.status "
-        "FROM Fees f "
-        "LEFT JOIN Students s ON f.student_id = s.student_id "
-        "ORDER BY f.due_date;";
-    
-    sqlite3_stmt *stmt;
-    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
-    
-    if (rc != SQLITE_OK) {
-        printf("[ERROR] Failed to prepare get_all_fees: %s\n", sqlite3_errmsg(db));
-        return NULL;
-    }
-    
-    return stmt;
-}
-
-/**
- * @brief Get fees by roll number
- */
-sqlite3_stmt* db_get_fees_by_rollno(const char *roll_no) {
-    
-    if (!roll_no) {
-        printf("[ERROR] NULL roll_no in db_get_fees_by_rollno\n");
-        return NULL;
-    }
+// ============================================================================
+// GET FEE RECORD BY ROLL NO
+// ============================================================================
+int db_get_fee_record(int roll_no, FeeRecord *fee) {
+    if (!fee) return 0;
     
     const char *sql = 
-        "SELECT f.fee_id, f.student_id, f.roll_no, s.name, s.branch, s.semester, "
-        "f.fee_type, f.amount, f.amount_paid, f.amount_due, f.due_date, f.status "
-        "FROM Fees f "
-        "LEFT JOIN Students s ON f.student_id = s.student_id "
-        "WHERE f.roll_no = ? "
-        "ORDER BY f.fee_type;";
+        "SELECT fee_id, roll_no, institute_paid, institute_date, institute_due, institute_mode,"
+        "       hostel_paid, hostel_date, hostel_due, hostel_mode,"
+        "       mess_paid, mess_date, mess_due, mess_mode,"
+        "       other_paid, other_date, other_due, other_mode,"
+        "       total_paid, total_due, total_amount,"
+        "       created_at, updated_at, created_by, status "
+        "FROM fees WHERE roll_no = ?";
     
     sqlite3_stmt *stmt;
-    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
     
     if (rc != SQLITE_OK) {
-        printf("[ERROR] Failed to prepare get_fees_by_rollno: %s\n", sqlite3_errmsg(db));
-        return NULL;
+        snprintf(error_msg, sizeof(error_msg), "Prepare Error: %s", 
+                 sqlite3_errmsg(db));
+        return 0;
     }
     
-    sqlite3_bind_text(stmt, 1, roll_no, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 1, roll_no);
+    rc = sqlite3_step(stmt);
     
-    return stmt;
+    if (rc == SQLITE_ROW) {
+        fee->fee_id = sqlite3_column_int(stmt, 0);
+        fee->roll_no = sqlite3_column_int(stmt, 1);
+        fee->institute_paid = sqlite3_column_double(stmt, 2);
+        strcpy(fee->institute_date, (const char*)sqlite3_column_text(stmt, 3) ?: "");
+        fee->institute_due = sqlite3_column_double(stmt, 4);
+        strcpy(fee->institute_mode, (const char*)sqlite3_column_text(stmt, 5) ?: "");
+        
+        fee->hostel_paid = sqlite3_column_double(stmt, 6);
+        strcpy(fee->hostel_date, (const char*)sqlite3_column_text(stmt, 7) ?: "");
+        fee->hostel_due = sqlite3_column_double(stmt, 8);
+        strcpy(fee->hostel_mode, (const char*)sqlite3_column_text(stmt, 9) ?: "");
+        
+        fee->mess_paid = sqlite3_column_double(stmt, 10);
+        strcpy(fee->mess_date, (const char*)sqlite3_column_text(stmt, 11) ?: "");
+        fee->mess_due = sqlite3_column_double(stmt, 12);
+        strcpy(fee->mess_mode, (const char*)sqlite3_column_text(stmt, 13) ?: "");
+        
+        fee->other_paid = sqlite3_column_double(stmt, 14);
+        strcpy(fee->other_date, (const char*)sqlite3_column_text(stmt, 15) ?: "");
+        fee->other_due = sqlite3_column_double(stmt, 16);
+        strcpy(fee->other_mode, (const char*)sqlite3_column_text(stmt, 17) ?: "");
+        
+        fee->total_paid = sqlite3_column_double(stmt, 18);
+        fee->total_due = sqlite3_column_double(stmt, 19);
+        fee->total_amount = sqlite3_column_double(stmt, 20);
+        strcpy(fee->created_at, (const char*)sqlite3_column_text(stmt, 21) ?: "");
+        strcpy(fee->updated_at, (const char*)sqlite3_column_text(stmt, 22) ?: "");
+        fee->created_by = sqlite3_column_int(stmt, 23);
+        fee->status = sqlite3_column_int(stmt, 24);
+        
+        sqlite3_finalize(stmt);
+        printf("[INFO] Fee record retrieved for roll_no: %d\n", roll_no);
+        return 1;
+    }
+    
+    sqlite3_finalize(stmt);
+    printf("[INFO] No fee record found for roll_no: %d\n", roll_no);
+    return 0;
 }
 
-/**
- * @brief Get student details for ID card display
- */
+// ============================================================================
+// UPDATE FEE RECORD
+// ============================================================================
+int db_update_fee_record(FeeRecord *fee) {
+    if (!fee || fee->fee_id == 0) return 0;
+    
+    // Recalculate totals
+    fee->total_paid = fee->institute_paid + fee->hostel_paid + 
+                      fee->mess_paid + fee->other_paid;
+    fee->total_due = fee->institute_due + fee->hostel_due + 
+                     fee->mess_due + fee->other_due;
+    fee->total_amount = fee->total_paid + fee->total_due;
+    
+    // Update timestamp
+    time_t now = time(NULL);
+    struct tm *tm_info = localtime(&now);
+    strftime(fee->updated_at, sizeof(fee->updated_at), 
+             "%Y-%m-%d %H:%M:%S", tm_info);
+    
+    const char *sql = 
+        "UPDATE fees SET "
+        "    institute_paid=?, institute_date=?, institute_due=?, institute_mode=?,"
+        "    hostel_paid=?, hostel_date=?, hostel_due=?, hostel_mode=?,"
+        "    mess_paid=?, mess_date=?, mess_due=?, mess_mode=?,"
+        "    other_paid=?, other_date=?, other_due=?, other_mode=?,"
+        "    total_paid=?, total_due=?, total_amount=?,"
+        "    updated_at=?, status=? "
+        "WHERE fee_id=?";
+    
+    sqlite3_stmt *stmt;
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+    
+    if (rc != SQLITE_OK) {
+        snprintf(error_msg, sizeof(error_msg), "Prepare Error: %s", 
+                 sqlite3_errmsg(db));
+        return 0;
+    }
+    
+    sqlite3_bind_double(stmt, 1, fee->institute_paid);
+    sqlite3_bind_text(stmt, 2, fee->institute_date, -1, SQLITE_STATIC);
+    sqlite3_bind_double(stmt, 3, fee->institute_due);
+    sqlite3_bind_text(stmt, 4, fee->institute_mode, -1, SQLITE_STATIC);
+    
+    sqlite3_bind_double(stmt, 5, fee->hostel_paid);
+    sqlite3_bind_text(stmt, 6, fee->hostel_date, -1, SQLITE_STATIC);
+    sqlite3_bind_double(stmt, 7, fee->hostel_due);
+    sqlite3_bind_text(stmt, 8, fee->hostel_mode, -1, SQLITE_STATIC);
+    
+    sqlite3_bind_double(stmt, 9, fee->mess_paid);
+    sqlite3_bind_text(stmt, 10, fee->mess_date, -1, SQLITE_STATIC);
+    sqlite3_bind_double(stmt, 11, fee->mess_due);
+    sqlite3_bind_text(stmt, 12, fee->mess_mode, -1, SQLITE_STATIC);
+    
+    sqlite3_bind_double(stmt, 13, fee->other_paid);
+    sqlite3_bind_text(stmt, 14, fee->other_date, -1, SQLITE_STATIC);
+    sqlite3_bind_double(stmt, 15, fee->other_due);
+    sqlite3_bind_text(stmt, 16, fee->other_mode, -1, SQLITE_STATIC);
+    
+    sqlite3_bind_double(stmt, 17, fee->total_paid);
+    sqlite3_bind_double(stmt, 18, fee->total_due);
+    sqlite3_bind_double(stmt, 19, fee->total_amount);
+    sqlite3_bind_text(stmt, 20, fee->updated_at, -1, SQLITE_STATIC);
+    sqlite3_bind_int(stmt, 21, fee->status);
+    sqlite3_bind_int(stmt, 22, fee->fee_id);
+    
+    rc = sqlite3_step(stmt);
+    
+    if (rc != SQLITE_DONE) {
+        snprintf(error_msg, sizeof(error_msg), "Execute Error: %s", 
+                 sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return 0;
+    }
+    
+    sqlite3_finalize(stmt);
+    printf("[SUCCESS] Fee record updated (ID: %d)\n", fee->fee_id);
+    return 1;
+}
+
+// ============================================================================
+// DELETE FEE RECORD
+// ============================================================================
+int db_delete_fee_record(int roll_no) {
+    const char *sql = "DELETE FROM fees WHERE roll_no = ?";
+    
+    sqlite3_stmt *stmt;
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+    
+    if (rc != SQLITE_OK) {
+        snprintf(error_msg, sizeof(error_msg), "Prepare Error: %s", 
+                 sqlite3_errmsg(db));
+        return 0;
+    }
+    
+    sqlite3_bind_int(stmt, 1, roll_no);
+    rc = sqlite3_step(stmt);
+    
+    if (rc != SQLITE_DONE) {
+        snprintf(error_msg, sizeof(error_msg), "Execute Error: %s", 
+                 sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return 0;
+    }
+    
+    sqlite3_finalize(stmt);
+    printf("[SUCCESS] Fee record deleted for roll_no: %d\n", roll_no);
+    return 1;
+}
+
+// ============================================================================
+// GET STUDENT FOR ID CARD
+// ============================================================================
 int db_get_student_for_card(int roll_no, StudentIDCard *card) {
     if (roll_no <= 0 || !card) {
         printf("[ERROR] Invalid parameters in db_get_student_for_card\n");
@@ -181,7 +329,7 @@ int db_get_student_for_card(int roll_no, StudentIDCard *card) {
     }
 
     const char *sql =
-        "SELECT student_id, roll_no, name, branch FROM students "
+        "SELECT student_id, roll_no, name, branch, mobile, email FROM students "
         "WHERE roll_no = ?;";
 
     sqlite3_stmt *stmt;
@@ -197,174 +345,26 @@ int db_get_student_for_card(int roll_no, StudentIDCard *card) {
 
     if (rc == SQLITE_ROW) {
         card->student_id = sqlite3_column_int(stmt, 0);
-        card->roll_no    = sqlite3_column_int(stmt, 1);  // store as int
+        card->roll_no = sqlite3_column_int(stmt, 1);
 
         const char *name = (const char *)sqlite3_column_text(stmt, 2);
-        if (name) {
-            strncpy(card->name, name, sizeof(card->name) - 1);
-            card->name[sizeof(card->name) - 1] = '\0';
-        }
+        if (name) strncpy(card->name, name, sizeof(card->name) - 1);
 
         const char *branch = (const char *)sqlite3_column_text(stmt, 3);
-        if (branch) {
-            strncpy(card->branch, branch, sizeof(card->branch) - 1);
-            card->branch[sizeof(card->branch) - 1] = '\0';
-        }
+        if (branch) strncpy(card->branch, branch, sizeof(card->branch) - 1);
+
+        const char *mobile = (const char *)sqlite3_column_text(stmt, 4);
+        if (mobile) strncpy(card->mobile, mobile, sizeof(card->mobile) - 1);
+
+        const char *email = (const char *)sqlite3_column_text(stmt, 5);
+        if (email) strncpy(card->email, email, sizeof(card->email) - 1);
 
         sqlite3_finalize(stmt);
-        printf("[INFO] Student ID card data retrieved for roll_no: %d\n", roll_no);
+        printf("[INFO] Student card data retrieved for roll_no: %d\n", roll_no);
         return 1;
     }
 
     sqlite3_finalize(stmt);
     printf("[WARNING] Student with roll_no %d not found\n", roll_no);
-    return 0;
-}
-
-/**
- * @brief Record payment for a fee
- */
-int db_record_payment(int fee_id, double amount_paid, const char *payment_date) {
-    
-    if (fee_id <= 0 || amount_paid <= 0 || !payment_date) {
-        printf("[ERROR] Invalid parameters in db_record_payment\n");
-        return -1;
-    }
-    
-    // Get current fee details
-    const char *get_fee_sql = "SELECT amount_paid, amount_due FROM Fees WHERE fee_id = ?;";
-    sqlite3_stmt *get_stmt;
-    int rc = sqlite3_prepare_v2(db, get_fee_sql, -1, &get_stmt, 0);
-    
-    if (rc != SQLITE_OK) {
-        printf("[ERROR] Failed to get fee details: %s\n", sqlite3_errmsg(db));
-        return -1;
-    }
-    
-    sqlite3_bind_int(get_stmt, 1, fee_id);
-    
-    double current_paid = 0, current_due = 0;
-    if (sqlite3_step(get_stmt) == SQLITE_ROW) {
-        current_paid = sqlite3_column_double(get_stmt, 0);
-        current_due = sqlite3_column_double(get_stmt, 1);
-    }
-    sqlite3_finalize(get_stmt);
-    
-    double new_paid = current_paid + amount_paid;
-    double new_due = current_due - amount_paid;
-    
-    if (new_due < 0) {
-        printf("[ERROR] Payment exceeds due amount\n");
-        return -1;
-    }
-    
-    // Update fee
-    const char *update_sql = 
-        "UPDATE Fees SET amount_paid = ?, amount_due = ?, "
-        "status = CASE WHEN ? <= 0 THEN 'Paid' WHEN ? > 0 AND ? < ? THEN 'Partial' ELSE 'Pending' END "
-        "WHERE fee_id = ?;";
-    
-    sqlite3_stmt *update_stmt;
-    rc = sqlite3_prepare_v2(db, update_sql, -1, &update_stmt, 0);
-    
-    if (rc != SQLITE_OK) {
-        printf("[ERROR] Failed to prepare update: %s\n", sqlite3_errmsg(db));
-        return -1;
-    }
-    
-    double original_amount = current_paid + current_due;
-    sqlite3_bind_double(update_stmt, 1, new_paid);
-    sqlite3_bind_double(update_stmt, 2, new_due);
-    sqlite3_bind_double(update_stmt, 3, new_due);
-    sqlite3_bind_double(update_stmt, 4, new_paid);
-    sqlite3_bind_double(update_stmt, 5, original_amount);
-    sqlite3_bind_double(update_stmt, 6, original_amount);
-    sqlite3_bind_int(update_stmt, 7, fee_id);
-    
-    rc = sqlite3_step(update_stmt);
-    
-    if (rc != SQLITE_DONE) {
-        printf("[ERROR] Failed to record payment: %s\n", sqlite3_errmsg(db));
-        sqlite3_finalize(update_stmt);
-        return -1;
-    }
-    
-    sqlite3_finalize(update_stmt);
-    printf("[SUCCESS] Payment recorded: Fee ID %d, Amount: %.2f\n", fee_id, amount_paid);
-    
-    return 1;
-}
-
-/**
- * @brief Update fee status
- */
-int db_update_fee_status(int fee_id, const char *status) {
-    
-    if (fee_id <= 0 || !status) {
-        printf("[ERROR] Invalid parameters in db_update_fee_status\n");
-        return -1;
-    }
-    
-    const char *sql = "UPDATE Fees SET status = ? WHERE fee_id = ?;";
-    
-    sqlite3_stmt *stmt;
-    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
-    
-    if (rc != SQLITE_OK) {
-        printf("[ERROR] Failed to prepare update: %s\n", sqlite3_errmsg(db));
-        return -1;
-    }
-    
-    sqlite3_bind_text(stmt, 1, status, -1, SQLITE_STATIC);
-    sqlite3_bind_int(stmt, 2, fee_id);
-    
-    rc = sqlite3_step(stmt);
-    
-    if (rc != SQLITE_DONE) {
-        printf("[ERROR] Failed to update status: %s\n", sqlite3_errmsg(db));
-        sqlite3_finalize(stmt);
-        return -1;
-    }
-    
-    sqlite3_finalize(stmt);
-    return 1;
-}
-
-/**
- * @brief Get total fees and dues for a student
- */
-int db_get_student_fee_summary(const char *roll_no, double *total_amount, 
-                               double *total_paid, double *total_due) {
-    
-    if (!roll_no || !total_amount || !total_paid || !total_due) {
-        printf("[ERROR] NULL parameters in db_get_student_fee_summary\n");
-        return 0;
-    }
-    
-    const char *sql = 
-        "SELECT SUM(amount), SUM(amount_paid), SUM(amount_due) FROM Fees "
-        "WHERE roll_no = ?;";
-    
-    sqlite3_stmt *stmt;
-    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
-    
-    if (rc != SQLITE_OK) {
-        printf("[ERROR] Failed to prepare summary query: %s\n", sqlite3_errmsg(db));
-        return 0;
-    }
-    
-    sqlite3_bind_text(stmt, 1, roll_no, -1, SQLITE_STATIC);
-    rc = sqlite3_step(stmt);
-    
-    if (rc == SQLITE_ROW) {
-        *total_amount = sqlite3_column_double(stmt, 0);
-        *total_paid = sqlite3_column_double(stmt, 1);
-        *total_due = sqlite3_column_double(stmt, 2);
-        
-        sqlite3_finalize(stmt);
-        return 1;
-    }
-    
-    sqlite3_finalize(stmt);
     return 0;
 }
