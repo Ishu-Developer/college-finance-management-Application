@@ -1,32 +1,50 @@
 #include <stdio.h>
 #include <string.h>
 #include <sqlite3.h>
+#include <ctype.h> 
 #include "../../include/database.h"
 
 // ✅ CORRECTED FUNCTION SIGNATURE
 int db_add_student(const char *name, const char *gender, const char *father_name, 
-                   const char *branch, int year, int semester, int roll_no, 
-                   const char *category, long long mobile, const char *email) {
+                   const char *branch, int year, int semester, const char *roll_no, 
+                   const char *category, const char *mobile, const char *email) {
     
     if (db == NULL) {
         fprintf(stderr, "[ERROR] Database not initialized\n");
         return -1;
     }
     
-    // ✅ Validation for all parameters
-    if (!name || !gender || !father_name || !branch || !category || !email) {
+    // ✅ Validation for all parameters (STRING validation, not pointer comparison)
+    if (!name || !gender || !father_name || !branch || !category || !email || !roll_no || !mobile) {
         fprintf(stderr, "[ERROR] NULL text parameter passed to db_add_student\n");
         return -1;
     }
     
-    if (roll_no <= 0) {
-        fprintf(stderr, "[ERROR] Roll number must be positive\n");
+    // ✅ CORRECTED validation for roll_no as STRING
+    if (strlen(roll_no) != 13) {
+        fprintf(stderr, "[ERROR] Roll number must be exactly 14 digits\n");
         return -1;
     }
     
-    if (mobile <= 0 || mobile > 9999999999LL) {  // 10-digit max: 9,999,999,999
-        fprintf(stderr, "[ERROR] Mobile must be 10-digit positive integer\n");
+    // ✅ Validate roll_no contains only digits
+    for (int i = 0; roll_no[i]; i++) {
+        if (!isdigit(roll_no[i])) {
+            fprintf(stderr, "[ERROR] Roll number must contain only digits\n");
+            return -1;
+        }
+    }
+    
+    // ✅ CORRECTED: Validate mobile as STRING (10 digits)
+    if (strlen(mobile) != 10) {
+        fprintf(stderr, "[ERROR] Mobile must be exactly 10 digits\n");
         return -1;
+    }
+    
+    for (int i = 0; mobile[i]; i++) {
+        if (!isdigit(mobile[i])) {
+            fprintf(stderr, "[ERROR] Mobile must contain only digits\n");
+            return -1;
+        }
     }
     
     if (year < 1 || year > 4) {
@@ -34,11 +52,11 @@ int db_add_student(const char *name, const char *gender, const char *father_name
         return -1;
     }
     
-    printf("[DEBUG] Adding student: %s (Roll: %d)\n", name, roll_no);
-    printf("[DEBUG] Branch: %s, Year: %d, Sem: %d, Mobile: %lld, Category: %s\n", 
+    printf("[DEBUG] Adding student: %s (Roll: %s)\n", name, roll_no);
+    printf("[DEBUG] Branch: %s, Year: %d, Sem: %d, Mobile: %s, Category: %s\n", 
            branch, year, semester, mobile, category);
     
-    // Check for duplicate roll number
+    // ✅ CORRECTED: Check for duplicate roll number using TEXT binding
     const char *check_sql = "SELECT COUNT(*) FROM students WHERE roll_no = ?;";
     sqlite3_stmt *check_stmt = NULL;
     
@@ -53,7 +71,12 @@ int db_add_student(const char *name, const char *gender, const char *father_name
         return -1;
     }
     
-    sqlite3_bind_int(check_stmt, 1, roll_no);
+    // ✅ FIX: Use sqlite3_bind_text, not sqlite3_bind_int!
+    if (sqlite3_bind_text(check_stmt, 1, roll_no, -1, SQLITE_STATIC) != SQLITE_OK) {
+        fprintf(stderr, "[ERROR] Failed to bind roll_no in check query\n");
+        sqlite3_finalize(check_stmt);
+        return -1;
+    }
     
     if (sqlite3_step(check_stmt) == SQLITE_ROW) {
         int count = sqlite3_column_int(check_stmt, 0);
@@ -61,7 +84,7 @@ int db_add_student(const char *name, const char *gender, const char *father_name
         check_stmt = NULL;
         
         if (count > 0) {
-            fprintf(stderr, "[ERROR] Roll number %d already exists\n", roll_no);
+            fprintf(stderr, "[ERROR] Roll number %s already exists\n", roll_no);
             return -1;
         }
     } else {
@@ -70,7 +93,7 @@ int db_add_student(const char *name, const char *gender, const char *father_name
         return -1;
     }
     
-    // ✅ CORRECTED INSERT STATEMENT (all columns with correct types)
+    // ✅ INSERT STATEMENT (all columns with correct types)
     const char *sql = "INSERT INTO students (name, gender, father_name, branch, year, semester, "
                       "roll_no, category, mobile, email) "
                       "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
@@ -89,7 +112,7 @@ int db_add_student(const char *name, const char *gender, const char *father_name
         return -1;
     }
     
-    // ✅ CORRECTED PARAMETER BINDING (text and integers as needed)
+    // ✅ CORRECTED PARAMETER BINDING
     if (sqlite3_bind_text(stmt, 1, name, -1, SQLITE_STATIC) != SQLITE_OK) {
         fprintf(stderr, "[ERROR] Failed to bind name\n");
         sqlite3_finalize(stmt);
@@ -126,7 +149,8 @@ int db_add_student(const char *name, const char *gender, const char *father_name
         return -1;
     }
     
-    if (sqlite3_bind_int(stmt, 7, roll_no) != SQLITE_OK) {
+    // ✅ FIX #1: Use sqlite3_bind_text for roll_no (STRING), not _int!
+    if (sqlite3_bind_text(stmt, 7, roll_no, -1, SQLITE_STATIC) != SQLITE_OK) {
         fprintf(stderr, "[ERROR] Failed to bind roll_no\n");
         sqlite3_finalize(stmt);
         return -1;
@@ -138,7 +162,8 @@ int db_add_student(const char *name, const char *gender, const char *father_name
         return -1;
     }
     
-    if (sqlite3_bind_int64(stmt, 9, mobile) != SQLITE_OK) {
+    // ✅ FIX #2: Use sqlite3_bind_text for mobile (STRING), not _int64!
+    if (sqlite3_bind_text(stmt, 9, mobile, -1, SQLITE_STATIC) != SQLITE_OK) {
         fprintf(stderr, "[ERROR] Failed to bind mobile\n");
         sqlite3_finalize(stmt);
         return -1;
@@ -168,11 +193,10 @@ int db_add_student(const char *name, const char *gender, const char *father_name
     
     sqlite3_finalize(stmt);
     
-    printf("[SUCCESS] Student added with ID: %d, Roll: %d, Name: %s, Mobile: %lld\n", 
+    printf("[SUCCESS] Student added with ID: %d, Roll: %s, Name: %s, Mobile: %s\n", 
            student_id, roll_no, name, mobile);
     return student_id;
 }
-
 // Keep other functions unchanged...
 int db_get_student(int student_id, Student *student) {
     (void)student_id;
@@ -214,7 +238,7 @@ int db_delete_student(int student_id) {
     return 0;  // TODO: Implement for Day 4
 }
 
-int db_search_student_by_rollno(int roll_no, Student *student) {
+int db_search_student_by_rollno(const char *roll_no, Student *student) {
     (void)roll_no;
     (void)student;
     return 0;  // TODO: Implement for Day 3

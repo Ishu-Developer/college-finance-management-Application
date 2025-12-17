@@ -27,7 +27,6 @@ static GtkWidget *search_entry = NULL;
 void refresh_student_table() {
     printf("[INFO] Refreshing student table\n");
     
-    // Clear existing rows
     GtkListStore *store = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(student_table)));
     if (store) {
         gtk_list_store_clear(store);
@@ -37,72 +36,53 @@ void refresh_student_table() {
     if (stmt == NULL) {
         printf("[WARNING] No students found in database\n");
         
-        // Show "No students" message
         GtkTreeIter iter;
         gtk_list_store_append(store, &iter);
         gtk_list_store_set(store, &iter,
-            0, "—",
-            1, "—",
-            2, "—",
-            3, 0,
-            4, "No student added",
-            5, "—",
-            6, "—",
-            7, "—",
-            8, "—",
-            9, "—",
-            10, "—",
-            11, "—",
-            12, "—",
-            13, "—",
+            0, "—", 1, "—", 2, "—", 3, 0, 4, "No student added",
+            5, "—", 6, "—", 7, "—", 8, "—", 9, "—", 10, "—", 11, "—", 12, "—", 13, "—",
             -1);
-        printf("[INFO] Empty state displayed\n");
         return;
     }
     
     int count = 0;
     while (sqlite3_step(stmt) == SQLITE_ROW) {
-    int student_id   = sqlite3_column_int(stmt, 0);
-    int roll_no      = sqlite3_column_int(stmt, 1);
-    const char *name = (const char *)sqlite3_column_text(stmt, 2);
-    const char *gender = (const char *)sqlite3_column_text(stmt, 3);
-    const char *father = (const char *)sqlite3_column_text(stmt, 4);
-    const char *branch = (const char *)sqlite3_column_text(stmt, 5);
-    int year        = sqlite3_column_int(stmt, 6);
-    int semester    = sqlite3_column_int(stmt, 7);
-    const char *category = (const char *)sqlite3_column_text(stmt, 8);
-    const char *mobile   = (const char *)sqlite3_column_text(stmt, 9);
-    const char *email    = (const char *)sqlite3_column_text(stmt,10);
+        int student_id      = sqlite3_column_int(stmt, 0);
+        const char *roll_no = (const char *)sqlite3_column_text(stmt, 1);  // ✅ FIX #1: Use _text!
+        const char *name    = (const char *)sqlite3_column_text(stmt, 2);
+        const char *gender  = (const char *)sqlite3_column_text(stmt, 3);
+        const char *father  = (const char *)sqlite3_column_text(stmt, 4);
+        const char *branch  = (const char *)sqlite3_column_text(stmt, 5);
+        int year            = sqlite3_column_int(stmt, 6);
+        int semester        = sqlite3_column_int(stmt, 7);
+        const char *category = (const char *)sqlite3_column_text(stmt, 8);
+        const char *mobile  = (const char *)sqlite3_column_text(stmt, 9);
+        const char *email   = (const char *)sqlite3_column_text(stmt, 10);
 
-    char year_str[20];
-    snprintf(year_str, sizeof(year_str), "%d", year);
-    char roll_no_str[20];
-    snprintf(roll_no_str, sizeof(roll_no_str), "%d", roll_no);
+        char year_str[20];
+        snprintf(year_str, sizeof(year_str), "%d", year);
 
-    GtkTreeIter iter;
-    gtk_list_store_append(store, &iter);
-    gtk_list_store_set(store, &iter,
-        0, "✏️",
-        1, "🗑️",
-        2, "📷",
-        3, student_id,
-        4, name,
-        5, gender ? gender : "—",
-        6, father ? father : "—",
-        7, branch ? branch : "—",
-        8, year_str,
-        9, semester,
-        10, roll_no_str,
-        11, category ? category : "—",
-        12, mobile ? mobile : "—",
-        13, email ? email : "—",
-        -1);
+        GtkTreeIter iter;
+        gtk_list_store_append(store, &iter);
+        gtk_list_store_set(store, &iter,
+            0, "✏️", 1, "🗑️", 2, "📷", 3, student_id, 4, name,
+            5, gender ? gender : "—",
+            6, father ? father : "—",
+            7, branch ? branch : "—",
+            8, year_str,
+            9, semester,
+            10, roll_no ? roll_no : "—",  
+            11, category ? category : "—",
+            12, mobile ? mobile : "—",
+            13, email ? email : "—",
+            -1);
+        count++;
     }
 
-    
     sqlite3_finalize(stmt);
     printf("[INFO] Loaded %d students from database\n", count);
 }
+
 
 void on_select_photo_clicked(GtkButton *button, gpointer user_data) {
     (void)button;
@@ -157,22 +137,20 @@ void on_add_student_save_clicked(GtkButton *button, gpointer user_data) {
     (void)button;
     (void)user_data;
     
-    // Get form values
     const char *name = gtk_entry_get_text(GTK_ENTRY(name_entry));
     int gender_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(gender_combo));
     const char *gender = (gender_idx == 0) ? "Male" : (gender_idx == 1) ? "Female" : "Other";
     const char *father_name = gtk_entry_get_text(GTK_ENTRY(father_name_entry));
     int branch_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(branch_combo));
     const char *branch = (branch_idx == 0) ? "CSE" : 
-                        (branch_idx == 1) ? "EE" : 
+                        (branch_idx == 1) ? "IT" : 
                         (branch_idx == 2) ? "CIVIL" : 
-                        (branch_idx == 3) ? "ME" : "IT";
+                        (branch_idx == 3) ? "ME" : "ECE";
     
     int year = gtk_combo_box_get_active(GTK_COMBO_BOX(year_combo)) + 1;
     int semester = gtk_combo_box_get_active(GTK_COMBO_BOX(semester_combo)) + 1;
     
-    const char *roll_no_str = gtk_entry_get_text(GTK_ENTRY(roll_no_entry));
-    int roll_no = atoi(roll_no_str);
+    const char *roll_no_str = gtk_entry_get_text(GTK_ENTRY(roll_no_entry));  // ✅ Keep as string!
     
     int category_idx = gtk_combo_box_get_active(GTK_COMBO_BOX(category_combo));
     const char *category = (category_idx == 0) ? "General" : 
@@ -180,125 +158,98 @@ void on_add_student_save_clicked(GtkButton *button, gpointer user_data) {
                           (category_idx == 2) ? "SC/ST" : "EWS";
     
     const char *mobile_str = gtk_entry_get_text(GTK_ENTRY(mobile_entry));
-    long long mobile = atoll(mobile_str);
-    
     const char *email = gtk_entry_get_text(GTK_ENTRY(email_entry));
     
     printf("[INFO] Add Student - Validating input\n");
-    printf("[DEBUG] Name: %s, Roll: %d, Year: %d, Mobile: %s\n", 
-           name, roll_no, year, mobile_str);
+    printf("[DEBUG] Name: %s, Roll: %s, Year: %d, Mobile: %s\n", 
+           name, roll_no_str, year, mobile_str);
     
-    // ✅ UPDATED VALIDATIONS - Using STRING-based validators
-    
-    // Validate Roll Number (STRING input)
+    // ✅ VALIDATIONS using STRING-based validators
     if (!validate_roll_no(roll_no_str)) {
         gtk_label_set_text(GTK_LABEL(error_label), 
-            "❌ Invalid Roll No (must be 1001-999999)");
+            "❌ Invalid Roll No (must be 14 digits)");
         gtk_widget_show(error_label);
         printf("[WARNING] Invalid roll number: %s\n", roll_no_str);
         return;
     }
     
-    // Validate Name
     if (!validate_name(name)) {
         gtk_label_set_text(GTK_LABEL(error_label), 
             "❌ Name must be 3-100 letters (no numbers)");
         gtk_widget_show(error_label);
-        printf("[WARNING] Invalid name: %s\n", name);
         return;
     }
     
-    // Validate Year
-    char year_str[20] = {0};        
-    snprintf(year_str, sizeof(year_str), "%d", year); 
+    char year_str[20];
+    snprintf(year_str, sizeof(year_str), "%d", year);
     if (!validate_year(year_str)) {
-        gtk_label_set_text(GTK_LABEL(error_label), 
-            "❌ Year must be 1-4");
+        gtk_label_set_text(GTK_LABEL(error_label), "❌ Year must be 1-4");
         gtk_widget_show(error_label);
         return;
     }
     
-    // Validate Semester
-    char semester_str[20] = {0};    
-    snprintf(semester_str, sizeof(semester_str), "%d", semester); 
+    char semester_str[20];
+    snprintf(semester_str, sizeof(semester_str), "%d", semester);
     if (!validate_semester(semester_str)) {
-        gtk_label_set_text(GTK_LABEL(error_label), 
-            "❌ Semester must be 1-8");
+        gtk_label_set_text(GTK_LABEL(error_label), "❌ Semester must be 1-8");
         gtk_widget_show(error_label);
         return;
     }
     
-    // Validate Mobile (STRING: exactly 10 digits as string)
     if (!validate_mobile(mobile_str)) {
         gtk_label_set_text(GTK_LABEL(error_label), 
             "❌ Mobile must be exactly 10 digits (6-9 start)");
         gtk_widget_show(error_label);
-        printf("[WARNING] Invalid mobile: %s\n", mobile_str);
         return;
     }
     
-    // Validate Email
     if (!validate_email(email)) {
-        gtk_label_set_text(GTK_LABEL(error_label), 
-            "❌ Invalid email format");
+        gtk_label_set_text(GTK_LABEL(error_label), "❌ Invalid email format");
         gtk_widget_show(error_label);
-        printf("[WARNING] Invalid email: %s\n", email);
         return;
     }
     
-    // Validate Gender
     if (!validate_gender(gender)) {
-        gtk_label_set_text(GTK_LABEL(error_label), 
-            "❌ Invalid gender");
+        gtk_label_set_text(GTK_LABEL(error_label), "❌ Invalid gender");
         gtk_widget_show(error_label);
         return;
     }
     
-    // Validate Branch
     if (!validate_branch(branch)) {
-        gtk_label_set_text(GTK_LABEL(error_label), 
-            "❌ Invalid branch");
+        gtk_label_set_text(GTK_LABEL(error_label), "❌ Invalid branch");
         gtk_widget_show(error_label);
         return;
     }
     
-    // Validate Category
     if (!validate_category(category)) {
-        gtk_label_set_text(GTK_LABEL(error_label), 
-            "❌ Invalid category");
+        gtk_label_set_text(GTK_LABEL(error_label), "❌ Invalid category");
         gtk_widget_show(error_label);
         return;
     }
     
     printf("[INFO] All validations passed - Adding student\n");
     
-    // Add student to database
+    // ✅ FIX #2: Pass roll_no_str directly (string), not converted to int!
     int result = db_add_student(name, gender, father_name, branch, year, semester, 
-                               roll_no, category, mobile, email);
+                               roll_no_str,  // STRING parameter!
+                               category, mobile_str, email);
     
     if (result > 0) {
         printf("[SUCCESS] Student added with ID: %d\n", result);
         
         GtkWidget *dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL,
             GTK_MESSAGE_INFO, GTK_BUTTONS_OK,
-            "✅ Student Added Successfully!\nStudent ID: %d\nName: %s\nRoll: %d", 
-            result, name, roll_no);
+            "✅ Student Added Successfully!\nStudent ID: %d\nName: %s\nRoll: %s",result, name, roll_no_str);
         gtk_dialog_run(GTK_DIALOG(dialog));
         gtk_widget_destroy(dialog);
         
-        // Clear form
+        // Clear form...
         gtk_entry_set_text(GTK_ENTRY(name_entry), "");
-        gtk_combo_box_set_active(GTK_COMBO_BOX(gender_combo), 0);
         gtk_entry_set_text(GTK_ENTRY(father_name_entry), "");
-        gtk_combo_box_set_active(GTK_COMBO_BOX(branch_combo), 0);
-        gtk_combo_box_set_active(GTK_COMBO_BOX(year_combo), 0);
-        gtk_combo_box_set_active(GTK_COMBO_BOX(semester_combo), 0);
         gtk_entry_set_text(GTK_ENTRY(roll_no_entry), "");
-        gtk_combo_box_set_active(GTK_COMBO_BOX(category_combo), 0);
         gtk_entry_set_text(GTK_ENTRY(mobile_entry), "");
         gtk_entry_set_text(GTK_ENTRY(email_entry), "");
         gtk_label_set_text(GTK_LABEL(photo_label), "📷 No photo selected");
-        strcpy(photo_path, "");
         gtk_widget_hide(error_label);
         
         refresh_student_table();
@@ -309,6 +260,7 @@ void on_add_student_save_clicked(GtkButton *button, gpointer user_data) {
         gtk_widget_show(error_label);
     }
 }
+
 
 void on_add_student_clicked(GtkButton *button, gpointer user_data) {
     (void)button;
@@ -395,79 +347,72 @@ void on_search_perform_inline(GtkButton *button, gpointer user_data) {
     (void)button;
     (void)user_data;
     
-    const char *roll_no_str = gtk_entry_get_text(GTK_ENTRY(search_entry));
+    const char *search_roll_no = gtk_entry_get_text(GTK_ENTRY(search_entry));
     
-    if (!roll_no_str || strlen(roll_no_str) == 0) {
+    if (!search_roll_no || strlen(search_roll_no) == 0) {
         gtk_label_set_text(GTK_LABEL(error_label), "❌ Please enter a roll number");
         gtk_widget_show(error_label);
         return;
     }
     
-    printf("[INFO] Searching for roll: %s\n", roll_no_str);
+    printf("[INFO] Searching for roll: %s\n", search_roll_no);
     
-    // Clear table
     GtkListStore *store = GTK_LIST_STORE(gtk_tree_view_get_model(GTK_TREE_VIEW(student_table)));
     gtk_list_store_clear(store);
     
-    // Search database
     sqlite3_stmt *stmt = db_get_all_students();
     int found = 0;
     
     if (stmt != NULL) {
         while (sqlite3_step(stmt) == SQLITE_ROW) {
-        int student_id   = sqlite3_column_int(stmt, 0);
-        int roll_no      = sqlite3_column_int(stmt, 1);
-        const char *name = (const char *)sqlite3_column_text(stmt, 2);
-        const char *gender = (const char *)sqlite3_column_text(stmt, 3);
-        const char *father = (const char *)sqlite3_column_text(stmt, 4);
-        const char *branch = (const char *)sqlite3_column_text(stmt, 5);
-        int year        = sqlite3_column_int(stmt, 6);
-        int semester    = sqlite3_column_int(stmt, 7);
-        const char *category = (const char *)sqlite3_column_text(stmt, 8);
-        const char *mobile   = (const char *)sqlite3_column_text(stmt, 9);
-        const char *email    = (const char *)sqlite3_column_text(stmt,10);
+            int student_id      = sqlite3_column_int(stmt, 0);
+            const char *roll_no = (const char *)sqlite3_column_text(stmt, 1);  // ✅ Use _text!
+            const char *name    = (const char *)sqlite3_column_text(stmt, 2);
+            const char *gender  = (const char *)sqlite3_column_text(stmt, 3);
+            const char *father  = (const char *)sqlite3_column_text(stmt, 4);
+            const char *branch  = (const char *)sqlite3_column_text(stmt, 5);
+            int year            = sqlite3_column_int(stmt, 6);
+            int semester        = sqlite3_column_int(stmt, 7);
+            const char *category = (const char *)sqlite3_column_text(stmt, 8);
+            const char *mobile  = (const char *)sqlite3_column_text(stmt, 9);
+            const char *email   = (const char *)sqlite3_column_text(stmt, 10);
 
-        char year_str[20];
-        snprintf(year_str, sizeof(year_str), "%d", year);
-        char roll_no_str[20];
-        snprintf(roll_no_str, sizeof(roll_no_str), "%d", roll_no);
+            // ✅ FIX #4: Only add row if roll number MATCHES search
+            if (roll_no && strcmp(roll_no, search_roll_no) == 0) {
+                char year_str[20];
+                snprintf(year_str, sizeof(year_str), "%d", year);
 
-        GtkTreeIter iter;
-        gtk_list_store_append(store, &iter);
-        gtk_list_store_set(store, &iter,
-            0, "✏️",
-            1, "🗑️",
-            2, "📷",
-            3, student_id,
-            4, name,
-            5, gender ? gender : "—",
-            6, father ? father : "—",
-            7, branch ? branch : "—",
-            8, year_str,
-            9, semester,
-            10, roll_no_str,
-            11, category ? category : "—",
-            12, mobile ? mobile : "—",
-            13, email ? email : "—",
-            -1);
+                GtkTreeIter iter;
+                gtk_list_store_append(store, &iter);
+                gtk_list_store_set(store, &iter,
+                    0, "✏️", 1, "🗑️", 2, "📷", 3, student_id, 4, name,
+                    5, gender ? gender : "—",
+                    6, father ? father : "—",
+                    7, branch ? branch : "—",
+                    8, year_str,
+                    9, semester,
+                    10, roll_no,  // ✅ Use directly
+                    11, category ? category : "—",
+                    12, mobile ? mobile : "—",
+                    13, email ? email : "—",
+                    -1);
+                found++;
+            }
         }
-
         sqlite3_finalize(stmt);
     }
     
-    if (found) {
+    if (found > 0) {
         gtk_label_set_text(GTK_LABEL(error_label), "✅ Student found!");
         gtk_widget_show(error_label);
-        printf("[SUCCESS] Search found student\n");
+        printf("[SUCCESS] Found %d student(s)\n", found);
     } else {
         gtk_label_set_text(GTK_LABEL(error_label), 
-            "❌ No student found with roll number");
+            "❌ No student found with this roll number");
         gtk_widget_show(error_label);
         printf("[WARNING] Student not found\n");
     }
 }
-
-
 // Clear search
 void on_search_clear(GtkButton *button, gpointer user_data) {
     (void)button;
@@ -481,8 +426,6 @@ void on_search_clear(GtkButton *button, gpointer user_data) {
     
     refresh_student_table();
 }
-
-
 void create_student_ui(GtkWidget *container) {
     printf("[INFO] Creating Student Management UI\n");
     
@@ -556,7 +499,7 @@ void create_student_ui(GtkWidget *container) {
     gtk_widget_set_halign(roll_label, GTK_ALIGN_START);
     gtk_grid_attach(GTK_GRID(grid), roll_label, 0, 1, 1, 1);
     roll_no_entry = gtk_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(roll_no_entry), "1001-999999");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(roll_no_entry), "2408400100031");
     gtk_grid_attach(GTK_GRID(grid), roll_no_entry, 1, 1, 1, 1);
     
     GtkWidget *name_label = gtk_label_new("Name:");

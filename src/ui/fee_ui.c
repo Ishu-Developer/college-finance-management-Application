@@ -1,10 +1,12 @@
 #include <gtk/gtk.h>
 #include <stdio.h>
-#include <string.h>
+#include <string.h>  
 #include <stdlib.h>
 #include "../../include/fee_ui.h"
 #include "../../include/database.h"
 #include "../../include/validators.h"
+
+
 
 // ============================================================================
 // GLOBAL VARIABLES
@@ -14,9 +16,12 @@ static GtkWidget *student_card_box = NULL;
 static gboolean search_box_visible = FALSE;
 static GtkWidget *search_box = NULL;
 static GtkWidget *search_entry = NULL;
+static GtkWidget *status_label = NULL;
+
 
 static StudentIDCard current_student = {0};
 static FeeRecord current_fee = {0};
+
 
 // Fee form input widgets
 static GtkWidget *fee_id_label = NULL;
@@ -25,22 +30,28 @@ static GtkWidget *inst_date_entry = NULL;
 static GtkWidget *inst_due_entry = NULL;
 static GtkWidget *inst_mode_combo = NULL;
 
+
 static GtkWidget *hostel_paid_entry = NULL;
 static GtkWidget *hostel_date_entry = NULL;
 static GtkWidget *hostel_due_entry = NULL;
 static GtkWidget *hostel_mode_combo = NULL;
+
 
 static GtkWidget *mess_paid_entry = NULL;
 static GtkWidget *mess_date_entry = NULL;
 static GtkWidget *mess_due_entry = NULL;
 static GtkWidget *mess_mode_combo = NULL;
 
+
 static GtkWidget *other_paid_entry = NULL;
 static GtkWidget *other_date_entry = NULL;
 static GtkWidget *other_due_entry = NULL;
 static GtkWidget *other_mode_combo = NULL;
 
+
 static GtkWidget *total_label = NULL;
+
+
 
 // ============================================================================
 // FORWARD DECLARATIONS
@@ -50,8 +61,35 @@ static void hide_inline_search_box();
 static void on_search_go_clicked(GtkButton *button, gpointer data);
 static void calculate_and_update_total();
 static void load_fee_data();
-static void clear_fee_form();
+static void clear_fee_form_internal();
 static void refresh_student_card_display();
+
+
+
+// ✅ Auto-hide status message
+static gboolean hide_status_message(gpointer data) {
+    (void)data;
+    if (status_label) {
+        gtk_label_set_text(GTK_LABEL(status_label), "");
+    }
+    return FALSE;
+}
+
+static void destroy_child_cb(GtkWidget *widget, gpointer user_data) {
+    (void)user_data;   // unused
+    gtk_widget_destroy(widget);
+}
+
+static void destroy_all_children(GtkWidget *container) {
+    if (!GTK_IS_CONTAINER(container)) return;
+
+    GList *children = gtk_container_get_children(GTK_CONTAINER(container));
+    for (GList *l = children; l != NULL; l = l->next) {
+        gtk_widget_destroy(GTK_WIDGET(l->data));
+    }
+    g_list_free(children);
+}
+
 
 // ============================================================================
 // STUDENT CARD DISPLAY
@@ -59,14 +97,9 @@ static void refresh_student_card_display();
 static void refresh_student_card_display() {
     if (student_card_box == NULL) return;
     
-    // Clear existing children
-    GList *children = gtk_container_get_children(GTK_CONTAINER(student_card_box));
-    for (GList *iter = children; iter; iter = iter->next) {
-        gtk_widget_destroy(GTK_WIDGET(iter->data));
-    }
-    g_list_free(children);
-    
-    if (current_student.roll_no == 0) {
+    destroy_all_children(student_card_box);
+        
+    if (strlen(current_student.roll_no) == 0) {
         GtkWidget *empty_label = gtk_label_new(
             "📌 No Student Selected\n\n"
             "Click Search to find\n"
@@ -79,17 +112,14 @@ static void refresh_student_card_display() {
         return;
     }
     
-    // Create card content
     GtkWidget *card_content = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
     gtk_container_set_border_width(GTK_CONTAINER(card_content), 15);
     
-    // Header
     GtkWidget *header = gtk_label_new(NULL);
     gtk_label_set_markup(GTK_LABEL(header),
         "<span font='11' weight='bold' color='#1976D2'>📇 STUDENT ID</span>");
     gtk_box_pack_start(GTK_BOX(card_content), header, FALSE, FALSE, 0);
     
-    // Separator
     gtk_box_pack_start(GTK_BOX(card_content), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), 
                        FALSE, FALSE, 5);
     
@@ -98,7 +128,7 @@ static void refresh_student_card_display() {
     GtkWidget *roll_label = gtk_label_new("Roll No:");
     gtk_widget_set_size_request(roll_label, 80, -1);
     char roll_str[50];
-    snprintf(roll_str, sizeof(roll_str), "<b>%d</b>", current_student.roll_no);
+    snprintf(roll_str, sizeof(roll_str), "<b>%s</b>", current_student.roll_no);
     GtkWidget *roll_value = gtk_label_new(NULL);
     gtk_label_set_markup(GTK_LABEL(roll_value), roll_str);
     gtk_box_pack_start(GTK_BOX(roll_box), roll_label, FALSE, FALSE, 0);
@@ -147,10 +177,14 @@ static void refresh_student_card_display() {
     gtk_widget_show_all(student_card_box);
 }
 
+
+
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 static void calculate_and_update_total() {
+    if (!inst_paid_entry) return;
+    
     double total_paid = 0, total_due = 0;
     
     total_paid += g_strtod(gtk_entry_get_text(GTK_ENTRY(inst_paid_entry)), NULL);
@@ -173,15 +207,16 @@ static void calculate_and_update_total() {
     gtk_label_set_markup(GTK_LABEL(total_label), total_text);
 }
 
+
+
 static void load_fee_data() {
-    if (current_student.roll_no == 0) {
-        clear_fee_form();
+    if (strlen(current_student.roll_no) == 0) {
+        printf("[WARNING] No student selected for fee loading\n");
         return;
     }
     
     if (db_get_fee_record(current_student.roll_no, &current_fee)) {
         char text[50];
-        
         snprintf(text, sizeof(text), "%d", current_fee.fee_id);
         gtk_label_set_text(GTK_LABEL(fee_id_label), text);
         
@@ -190,42 +225,61 @@ static void load_fee_data() {
         gtk_entry_set_text(GTK_ENTRY(inst_date_entry), current_fee.institute_date);
         snprintf(text, sizeof(text), "%.2f", current_fee.institute_due);
         gtk_entry_set_text(GTK_ENTRY(inst_due_entry), text);
-        gtk_combo_box_set_active_id(GTK_COMBO_BOX(inst_mode_combo), current_fee.institute_mode);
+        
+        // FIXED: Handle NULL return from gtk_combo_box_get_active_id
+        const char *mode = gtk_combo_box_get_active_id(GTK_COMBO_BOX(inst_mode_combo));
+        gtk_combo_box_set_active_id(GTK_COMBO_BOX(inst_mode_combo), mode ? mode : "");
         
         snprintf(text, sizeof(text), "%.2f", current_fee.hostel_paid);
         gtk_entry_set_text(GTK_ENTRY(hostel_paid_entry), text);
         gtk_entry_set_text(GTK_ENTRY(hostel_date_entry), current_fee.hostel_date);
         snprintf(text, sizeof(text), "%.2f", current_fee.hostel_due);
         gtk_entry_set_text(GTK_ENTRY(hostel_due_entry), text);
-        gtk_combo_box_set_active_id(GTK_COMBO_BOX(hostel_mode_combo), current_fee.hostel_mode);
+        
+        mode = gtk_combo_box_get_active_id(GTK_COMBO_BOX(hostel_mode_combo));
+        gtk_combo_box_set_active_id(GTK_COMBO_BOX(hostel_mode_combo), mode ? mode : "");
         
         snprintf(text, sizeof(text), "%.2f", current_fee.mess_paid);
         gtk_entry_set_text(GTK_ENTRY(mess_paid_entry), text);
         gtk_entry_set_text(GTK_ENTRY(mess_date_entry), current_fee.mess_date);
         snprintf(text, sizeof(text), "%.2f", current_fee.mess_due);
         gtk_entry_set_text(GTK_ENTRY(mess_due_entry), text);
-        gtk_combo_box_set_active_id(GTK_COMBO_BOX(mess_mode_combo), current_fee.mess_mode);
+        
+        mode = gtk_combo_box_get_active_id(GTK_COMBO_BOX(mess_mode_combo));
+        gtk_combo_box_set_active_id(GTK_COMBO_BOX(mess_mode_combo), mode ? mode : "");
         
         snprintf(text, sizeof(text), "%.2f", current_fee.other_paid);
         gtk_entry_set_text(GTK_ENTRY(other_paid_entry), text);
         gtk_entry_set_text(GTK_ENTRY(other_date_entry), current_fee.other_date);
         snprintf(text, sizeof(text), "%.2f", current_fee.other_due);
         gtk_entry_set_text(GTK_ENTRY(other_due_entry), text);
-        gtk_combo_box_set_active_id(GTK_COMBO_BOX(other_mode_combo), current_fee.other_mode);
         
-        printf("[INFO] Fee data loaded for roll_no: %d\n", current_student.roll_no);
+        mode = gtk_combo_box_get_active_id(GTK_COMBO_BOX(other_mode_combo));
+        gtk_combo_box_set_active_id(GTK_COMBO_BOX(other_mode_combo), mode ? mode : "");
+        
+        printf("[INFO] Fee data loaded for roll_no: %s\n", current_student.roll_no);
     } else {
-        char text[50];
-        snprintf(text, sizeof(text), "%d (New)", current_student.roll_no);
+        char text[100];
+        snprintf(text, sizeof(text), "%s (New)", current_student.roll_no);
         gtk_label_set_text(GTK_LABEL(fee_id_label), text);
         memset(&current_fee, 0, sizeof(FeeRecord));
-        current_fee.roll_no = current_student.roll_no;
+        g_strlcpy(current_fee.roll_no, current_student.roll_no, sizeof(current_fee.roll_no));
     }
     
     calculate_and_update_total();
 }
 
-static void clear_fee_form() {
+
+
+// FIXED: Renamed function and proper signal callback signature
+static void on_clear_fee_clicked(GtkButton *button, gpointer data) {
+    (void)button; (void)data;
+    clear_fee_form_internal();
+}
+
+
+
+static void clear_fee_form_internal() {
     gtk_label_set_text(GTK_LABEL(fee_id_label), "- (No Student)");
     gtk_entry_set_text(GTK_ENTRY(inst_paid_entry), "0");
     gtk_entry_set_text(GTK_ENTRY(inst_date_entry), "");
@@ -250,39 +304,49 @@ static void clear_fee_form() {
     calculate_and_update_total();
 }
 
+
+
 // ============================================================================
 // SAVE FEE DATA
 // ============================================================================
 void on_save_fee_clicked(GtkButton *button, gpointer data) {
     (void)button; (void)data;
     
-    if (current_student.roll_no == 0) {
-        g_print("[ERROR] No student selected\n");
+    if (strlen(current_student.roll_no) == 0) {
+        if (status_label) {
+            gtk_label_set_text(GTK_LABEL(status_label), "❌ Please select a student first");
+            g_timeout_add(3000, hide_status_message, NULL);
+        }
+        printf("[WARNING] No student selected\n");
         return;
     }
     
     FeeRecord fee = {0};
-    fee.roll_no = current_student.roll_no;
+    g_strlcpy(fee.roll_no, current_student.roll_no, sizeof(fee.roll_no));
     
     fee.institute_paid = g_strtod(gtk_entry_get_text(GTK_ENTRY(inst_paid_entry)), NULL);
-    strcpy(fee.institute_date, gtk_entry_get_text(GTK_ENTRY(inst_date_entry)));
+    g_strlcpy(fee.institute_date, gtk_entry_get_text(GTK_ENTRY(inst_date_entry)), sizeof(fee.institute_date));
     fee.institute_due = g_strtod(gtk_entry_get_text(GTK_ENTRY(inst_due_entry)), NULL);
-    strcpy(fee.institute_mode, gtk_combo_box_get_active_id(GTK_COMBO_BOX(inst_mode_combo)) ?: "");
+    const char *mode = gtk_combo_box_get_active_id(GTK_COMBO_BOX(inst_mode_combo));
+    g_strlcpy(fee.institute_mode, mode ? mode : "", sizeof(fee.institute_mode));
     
     fee.hostel_paid = g_strtod(gtk_entry_get_text(GTK_ENTRY(hostel_paid_entry)), NULL);
-    strcpy(fee.hostel_date, gtk_entry_get_text(GTK_ENTRY(hostel_date_entry)));
+    g_strlcpy(fee.hostel_date, gtk_entry_get_text(GTK_ENTRY(hostel_date_entry)), sizeof(fee.hostel_date));
     fee.hostel_due = g_strtod(gtk_entry_get_text(GTK_ENTRY(hostel_due_entry)), NULL);
-    strcpy(fee.hostel_mode, gtk_combo_box_get_active_id(GTK_COMBO_BOX(hostel_mode_combo)) ?: "");
+    mode = gtk_combo_box_get_active_id(GTK_COMBO_BOX(hostel_mode_combo));
+    g_strlcpy(fee.hostel_mode, mode ? mode : "", sizeof(fee.hostel_mode));
     
     fee.mess_paid = g_strtod(gtk_entry_get_text(GTK_ENTRY(mess_paid_entry)), NULL);
-    strcpy(fee.mess_date, gtk_entry_get_text(GTK_ENTRY(mess_date_entry)));
+    g_strlcpy(fee.mess_date, gtk_entry_get_text(GTK_ENTRY(mess_date_entry)), sizeof(fee.mess_date));
     fee.mess_due = g_strtod(gtk_entry_get_text(GTK_ENTRY(mess_due_entry)), NULL);
-    strcpy(fee.mess_mode, gtk_combo_box_get_active_id(GTK_COMBO_BOX(mess_mode_combo)) ?: "");
+    mode = gtk_combo_box_get_active_id(GTK_COMBO_BOX(mess_mode_combo));
+    g_strlcpy(fee.mess_mode, mode ? mode : "", sizeof(fee.mess_mode));
     
     fee.other_paid = g_strtod(gtk_entry_get_text(GTK_ENTRY(other_paid_entry)), NULL);
-    strcpy(fee.other_date, gtk_entry_get_text(GTK_ENTRY(other_date_entry)));
+    g_strlcpy(fee.other_date, gtk_entry_get_text(GTK_ENTRY(other_date_entry)), sizeof(fee.other_date));
     fee.other_due = g_strtod(gtk_entry_get_text(GTK_ENTRY(other_due_entry)), NULL);
-    strcpy(fee.other_mode, gtk_combo_box_get_active_id(GTK_COMBO_BOX(other_mode_combo)) ?: "");
+    mode = gtk_combo_box_get_active_id(GTK_COMBO_BOX(other_mode_combo));
+    g_strlcpy(fee.other_mode, mode ? mode : "", sizeof(fee.other_mode));
     
     fee.status = 1;
     
@@ -295,30 +359,56 @@ void on_save_fee_clicked(GtkButton *button, gpointer data) {
     }
     
     if (result) {
-        g_print("[SUCCESS] Fee saved for roll_no: %d\n", current_student.roll_no);
+        g_print("[SUCCESS] Fee saved for roll_no: %s\n", current_student.roll_no);
         memcpy(&current_fee, &fee, sizeof(FeeRecord));
         
-        GtkWidget *dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL,
-            GTK_MESSAGE_INFO, GTK_BUTTONS_OK, "✅ Fee Details Saved Successfully!");
-        gtk_dialog_run(GTK_DIALOG(dialog));
-        gtk_widget_destroy(dialog);
+        if (status_label) {
+            gtk_label_set_text(GTK_LABEL(status_label), "✅ Fee Details Saved Successfully!");
+            g_timeout_add(3000, hide_status_message, NULL);
+        }
     } else {
         g_print("[ERROR] Failed to save fee\n");
+        if (status_label) {
+            gtk_label_set_text(GTK_LABEL(status_label), "❌ Failed to save fee");
+            g_timeout_add(3000, hide_status_message, NULL);
+        }
     }
 }
+
+
 
 // ============================================================================
 // BUTTON CALLBACKS
 // ============================================================================
 void on_back_clicked(GtkButton *button, gpointer data) {
     (void)button; (void)data;
-    if (search_box_visible) hide_inline_search_box();
+    printf("[INFO] Back button clicked\n");
+    hide_inline_search_box();
 }
+
+
 
 void on_refresh_clicked(GtkButton *button, gpointer data) {
     (void)button; (void)data;
-    load_fee_data();
+    printf("[INFO] Refreshing Fee Form\n");
+    
+    memset(&current_student, 0, sizeof(StudentIDCard));
+    memset(&current_fee, 0, sizeof(FeeRecord));
+    
+    refresh_student_card_display();
+    clear_fee_form_internal();
+    
+    if (search_entry) {
+        gtk_entry_set_text(GTK_ENTRY(search_entry), "");
+    }
+    
+    if (status_label) {
+        gtk_label_set_text(GTK_LABEL(status_label), "🔄 Form Refreshed!");
+        g_timeout_add(3000, hide_status_message, NULL);
+    }
 }
+
+
 
 void on_search_student_fee_clicked(GtkButton *button, gpointer data) {
     (void)button; (void)data;
@@ -326,18 +416,25 @@ void on_search_student_fee_clicked(GtkButton *button, gpointer data) {
     else hide_inline_search_box();
 }
 
+
+
+// ============================================================================
+// SEARCH BOX
+// ============================================================================
 static void show_inline_search_box() {
     if (search_entry == NULL) {
         search_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
         gtk_widget_set_halign(search_box, GTK_ALIGN_CENTER);
+        gtk_widget_set_margin_top(search_box, 5);
+        gtk_widget_set_margin_bottom(search_box, 5);
         
         GtkWidget *label = gtk_label_new("🔍 Roll No: ");
         gtk_box_pack_start(GTK_BOX(search_box), label, FALSE, FALSE, 5);
         
         search_entry = gtk_entry_new();
-        gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), "1001");
-        gtk_widget_set_size_request(search_entry, 150, 35);
-        gtk_entry_set_max_length(GTK_ENTRY(search_entry), 6);
+        gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), "2408400100031");
+        gtk_widget_set_size_request(search_entry, 180, 35);
+        gtk_entry_set_max_length(GTK_ENTRY(search_entry), 13);
         gtk_box_pack_start(GTK_BOX(search_box), search_entry, FALSE, FALSE, 5);
         
         GtkWidget *go_btn = gtk_button_new_with_label("Search");
@@ -346,13 +443,16 @@ static void show_inline_search_box() {
         gtk_box_pack_start(GTK_BOX(search_box), go_btn, FALSE, FALSE, 5);
         
         if (main_box) {
-            gtk_box_pack_start(GTK_BOX(main_box), search_box, FALSE, FALSE, 10);
+            gtk_box_pack_start(GTK_BOX(main_box), search_box, FALSE, FALSE, 5);
+            gtk_box_reorder_child(GTK_BOX(main_box), search_box, 1);
         }
     }
     gtk_widget_show_all(search_box);
     search_box_visible = TRUE;
     gtk_widget_grab_focus(search_entry);
 }
+
+
 
 static void hide_inline_search_box() {
     if (search_box) {
@@ -361,39 +461,73 @@ static void hide_inline_search_box() {
     }
 }
 
+
+
 static void on_search_go_clicked(GtkButton *button, gpointer data) {
     (void)button; (void)data;
-    
     const char *roll_str = gtk_entry_get_text(GTK_ENTRY(search_entry));
-    if (strlen(roll_str) == 0) return;
     
-    int roll_no = atoi(roll_str);
-    if (db_get_student_for_card(roll_no, &current_student)) {
+    if (strlen(roll_str) == 0) {
+        if (status_label) {
+            gtk_label_set_text(GTK_LABEL(status_label), "❌ Please enter roll number");
+            g_timeout_add(3000, hide_status_message, NULL);
+        }
+        return;
+    }
+
+
+    if (strlen(roll_str) != 13) {
+        if (status_label) {
+            gtk_label_set_text(GTK_LABEL(status_label), "❌ Roll number must be 13 digits");
+            g_timeout_add(3000, hide_status_message, NULL);
+        }
+        return;
+    }
+    
+    if (db_get_student_for_card_by_roll(roll_str, &current_student)) {
         refresh_student_card_display();
         load_fee_data();
+
+
+        if (status_label) {
+            char msg[100];
+            snprintf(msg, sizeof(msg),
+                     "✅ Student found: %.80s",
+                     current_student.name);
+            gtk_label_set_text(GTK_LABEL(status_label), msg);
+            g_timeout_add(3000, hide_status_message, NULL);
+        }
+
+
         printf("[SUCCESS] Student found: %s\n", current_student.name);
+        hide_inline_search_box();
     } else {
+        if (status_label) {
+            gtk_label_set_text(GTK_LABEL(status_label), "❌ Student not found");
+            g_timeout_add(3000, hide_status_message, NULL);
+        }
         printf("[ERROR] Student not found\n");
+        hide_inline_search_box();
     }
-    hide_inline_search_box();
 }
 
+
+
 // ============================================================================
-// CREATE FEE UI WITH TWO-COLUMN LAYOUT
+// CREATE FEE UI - MAIN FUNCTION
 // ============================================================================
 void create_fee_ui(GtkWidget *container) {
     printf("[INFO] Creating Fee Form UI\n");
     
+    // MAIN BOX
     main_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    gtk_widget_set_vexpand(main_box, TRUE);
+    gtk_widget_set_hexpand(main_box, TRUE);
     gtk_widget_set_margin_start(main_box, 20);
     gtk_widget_set_margin_end(main_box, 20);
     gtk_widget_set_margin_top(main_box, 20);
-    
-    GtkWidget *scrolled = gtk_scrolled_window_new(NULL, NULL);
-    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled),
-        GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-    gtk_container_add(GTK_CONTAINER(scrolled), main_box);
-    gtk_container_add(GTK_CONTAINER(container), scrolled);
+    gtk_widget_set_margin_bottom(main_box, 20);
+    gtk_box_pack_start(GTK_BOX(container), main_box, TRUE, TRUE, 0);
     
     // HEADER
     GtkWidget *header = gtk_label_new(NULL);
@@ -427,33 +561,54 @@ void create_fee_ui(GtkWidget *container) {
     g_signal_connect(search_btn, "clicked", G_CALLBACK(on_search_student_fee_clicked), NULL);
     gtk_box_pack_start(GTK_BOX(right_btns), search_btn, FALSE, FALSE, 0);
     
-    // TWO-COLUMN LAYOUT
+    // ============================================================================
+    // FIXED: Create content_box for left/right layout
+    // ============================================================================
     GtkWidget *content_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 15);
+    gtk_widget_set_vexpand(content_box, TRUE);
+    gtk_widget_set_hexpand(content_box, TRUE);
     gtk_box_pack_start(GTK_BOX(main_box), content_box, TRUE, TRUE, 0);
     
-    // LEFT SIDE: STUDENT CARD
+    // ============================================================================
+    // LEFT SIDE: STUDENT CARD (WITH SCROLL)
+    // ============================================================================
+    GtkWidget *card_scroll = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(card_scroll),
+        GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    // Fixed size 200x350
+    gtk_widget_set_size_request(card_scroll, 200, 350);
+    gtk_widget_set_hexpand(card_scroll, FALSE);
+    gtk_widget_set_vexpand(card_scroll, FALSE);
+    gtk_box_pack_start(GTK_BOX(content_box), card_scroll, FALSE, FALSE, 0);
+
+    // Frame inside scroll
     GtkWidget *card_frame = gtk_frame_new(NULL);
     gtk_frame_set_label(GTK_FRAME(card_frame), "📇 Student Information");
     student_card_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_add(GTK_CONTAINER(card_frame), student_card_box);
-    gtk_widget_set_size_request(card_frame, 280, -1);
-    gtk_box_pack_start(GTK_BOX(content_box), card_frame, FALSE, TRUE, 0);
-    
-    // Show empty message initially
+    gtk_container_add(GTK_CONTAINER(card_scroll), card_frame);
+
+    // Empty label
     GtkWidget *empty = gtk_label_new("📌 No Student Selected\n\nClick Search →");
     gtk_widget_set_halign(empty, GTK_ALIGN_CENTER);
     gtk_widget_set_valign(empty, GTK_ALIGN_CENTER);
     gtk_container_add(GTK_CONTAINER(student_card_box), empty);
     
-    // RIGHT SIDE: FEE FORM
+    // ============================================================================
+    // RIGHT SIDE: FEE FORM (WITH SCROLL)
+    // ============================================================================
     GtkWidget *form_frame = gtk_frame_new(NULL);
     gtk_frame_set_label(GTK_FRAME(form_frame), "📋 Fee Details Form");
+    gtk_widget_set_hexpand(form_frame, TRUE);
+    gtk_widget_set_vexpand(form_frame, TRUE);
     gtk_box_pack_start(GTK_BOX(content_box), form_frame, TRUE, TRUE, 0);
     
     GtkWidget *form_scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(form_scroll),
         GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-    gtk_container_add(GTK_CONTAINER(form_frame), form_scroll);
+    gtk_widget_set_hexpand(form_scroll, TRUE);
+    gtk_widget_set_vexpand(form_scroll, TRUE);
+    gtk_container_add(GTK_CONTAINER(form_frame), form_scroll);    
     
     GtkWidget *form_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
     gtk_container_set_border_width(GTK_CONTAINER(form_box), 15);
@@ -533,6 +688,7 @@ void create_fee_ui(GtkWidget *container) {
         gtk_box_pack_start(GTK_BOX(form_box), row, FALSE, FALSE, 0); \
     } while(0)
     
+    // CREATE ALL 4 FEE ROWS
     CREATE_FEE_ROW("💳 Institute Fee", inst_paid_entry, inst_date_entry, inst_due_entry, inst_mode_combo);
     CREATE_FEE_ROW("🏠 Hostel Fee", hostel_paid_entry, hostel_date_entry, hostel_due_entry, hostel_mode_combo);
     CREATE_FEE_ROW("🍽️ Mess Fee", mess_paid_entry, mess_date_entry, mess_due_entry, mess_mode_combo);
@@ -554,7 +710,7 @@ void create_fee_ui(GtkWidget *container) {
     gtk_box_pack_start(GTK_BOX(total_row), total_label, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(form_box), total_row, FALSE, FALSE, 10);
     
-    // SAVE BUTTON
+    // BUTTONS
     GtkWidget *button_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
     gtk_widget_set_halign(button_box, GTK_ALIGN_CENTER);
     gtk_box_pack_start(GTK_BOX(form_box), button_box, FALSE, FALSE, 20);
@@ -563,6 +719,17 @@ void create_fee_ui(GtkWidget *container) {
     gtk_widget_set_size_request(save_btn, 200, 45);
     g_signal_connect(save_btn, "clicked", G_CALLBACK(on_save_fee_clicked), NULL);
     gtk_box_pack_start(GTK_BOX(button_box), save_btn, FALSE, FALSE, 0);
+
+    // FIXED: Use wrapper function with proper callback signature
+    GtkWidget *clear_btn = gtk_button_new_with_label("🗑️ Clear Form");
+    gtk_widget_set_size_request(clear_btn, 140, 45);
+    g_signal_connect(clear_btn, "clicked", G_CALLBACK(on_clear_fee_clicked), NULL);
+    gtk_box_pack_start(GTK_BOX(button_box), clear_btn, FALSE, FALSE, 0);
+    
+    // Status label
+    status_label = gtk_label_new("");
+    gtk_label_set_use_markup(GTK_LABEL(status_label), TRUE);
+    gtk_box_pack_start(GTK_BOX(form_box), status_label, FALSE, FALSE, 10);
     
     gtk_widget_show_all(container);
     printf("[INFO] Fee Form UI created successfully\n");

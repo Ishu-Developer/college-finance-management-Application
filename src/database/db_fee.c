@@ -14,7 +14,7 @@ int db_create_fee_table() {
     const char *sql = 
         "CREATE TABLE IF NOT EXISTS fees ("
         "    fee_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "    roll_no INTEGER NOT NULL UNIQUE,"
+        "    roll_no TEXT NOT NULL UNIQUE,"
         "    institute_paid REAL DEFAULT 0,"
         "    institute_date TEXT,"
         "    institute_due REAL DEFAULT 0,"
@@ -61,6 +61,11 @@ int db_create_fee_table() {
 int db_save_fee_record(FeeRecord *fee) {
     if (!fee) return 0;
     
+    if (strlen(fee->roll_no) == 0) {
+        fprintf(stderr, "[ERROR] Roll number cannot be empty\n");
+        return 0;
+    }
+    
     // Calculate totals
     fee->total_paid = fee->institute_paid + fee->hostel_paid + 
                       fee->mess_paid + fee->other_paid;
@@ -95,8 +100,8 @@ int db_save_fee_record(FeeRecord *fee) {
         return 0;
     }
     
-    // Bind values
-    sqlite3_bind_int(stmt, 1, fee->roll_no);
+    // ✅ CORRECTED: Bind roll_no as TEXT, not int!
+    sqlite3_bind_text(stmt, 1, fee->roll_no, -1, SQLITE_STATIC);
     sqlite3_bind_double(stmt, 2, fee->institute_paid);
     sqlite3_bind_text(stmt, 3, fee->institute_date, -1, SQLITE_STATIC);
     sqlite3_bind_double(stmt, 4, fee->institute_due);
@@ -137,16 +142,18 @@ int db_save_fee_record(FeeRecord *fee) {
     fee->fee_id = (int)sqlite3_last_insert_rowid(db);
     sqlite3_finalize(stmt);
     
-    printf("[SUCCESS] Fee record saved for roll_no: %d (ID: %d)\n", 
+    printf("[SUCCESS] Fee record saved for roll_no: %s (ID: %d)\n", 
            fee->roll_no, fee->fee_id);
     return 1;
 }
 
+
 // ============================================================================
 // GET FEE RECORD BY ROLL NO
 // ============================================================================
-int db_get_fee_record(int roll_no, FeeRecord *fee) {
-    if (!fee) return 0;
+// ✅ CORRECTED: Change parameter from int to const char*
+int db_get_fee_record(const char *roll_no, FeeRecord *fee) {
+    if (!fee || !roll_no) return 0;
     
     const char *sql = 
         "SELECT fee_id, roll_no, institute_paid, institute_date, institute_due, institute_mode,"
@@ -166,47 +173,55 @@ int db_get_fee_record(int roll_no, FeeRecord *fee) {
         return 0;
     }
     
-    sqlite3_bind_int(stmt, 1, roll_no);
+    // ✅ CORRECTED: Bind roll_no as TEXT, not int!
+    sqlite3_bind_text(stmt, 1, roll_no, -1, SQLITE_STATIC);
     rc = sqlite3_step(stmt);
     
     if (rc == SQLITE_ROW) {
         fee->fee_id = sqlite3_column_int(stmt, 0);
-        fee->roll_no = sqlite3_column_int(stmt, 1);
+        
+        // ✅ CORRECTED: Get roll_no as TEXT
+        const char *roll_no_text = (const char *)sqlite3_column_text(stmt, 1);
+        if (roll_no_text) {
+            strncpy(fee->roll_no, roll_no_text, sizeof(fee->roll_no) - 1);
+            fee->roll_no[sizeof(fee->roll_no) - 1] = '\0';
+        }
+        
         fee->institute_paid = sqlite3_column_double(stmt, 2);
-        strcpy(fee->institute_date, (const char*)sqlite3_column_text(stmt, 3) ?: "");
+        strncpy(fee->institute_date, (const char*)sqlite3_column_text(stmt, 3) ?: "", sizeof(fee->institute_date) - 1);
         fee->institute_due = sqlite3_column_double(stmt, 4);
-        strcpy(fee->institute_mode, (const char*)sqlite3_column_text(stmt, 5) ?: "");
+        strncpy(fee->institute_mode, (const char*)sqlite3_column_text(stmt, 5) ?: "", sizeof(fee->institute_mode) - 1);
         
         fee->hostel_paid = sqlite3_column_double(stmt, 6);
-        strcpy(fee->hostel_date, (const char*)sqlite3_column_text(stmt, 7) ?: "");
+        strncpy(fee->hostel_date, (const char*)sqlite3_column_text(stmt, 7) ?: "", sizeof(fee->hostel_date) - 1);
         fee->hostel_due = sqlite3_column_double(stmt, 8);
-        strcpy(fee->hostel_mode, (const char*)sqlite3_column_text(stmt, 9) ?: "");
+        strncpy(fee->hostel_mode, (const char*)sqlite3_column_text(stmt, 9) ?: "", sizeof(fee->hostel_mode) - 1);
         
         fee->mess_paid = sqlite3_column_double(stmt, 10);
-        strcpy(fee->mess_date, (const char*)sqlite3_column_text(stmt, 11) ?: "");
+        strncpy(fee->mess_date, (const char*)sqlite3_column_text(stmt, 11) ?: "", sizeof(fee->mess_date) - 1);
         fee->mess_due = sqlite3_column_double(stmt, 12);
-        strcpy(fee->mess_mode, (const char*)sqlite3_column_text(stmt, 13) ?: "");
+        strncpy(fee->mess_mode, (const char*)sqlite3_column_text(stmt, 13) ?: "", sizeof(fee->mess_mode) - 1);
         
         fee->other_paid = sqlite3_column_double(stmt, 14);
-        strcpy(fee->other_date, (const char*)sqlite3_column_text(stmt, 15) ?: "");
+        strncpy(fee->other_date, (const char*)sqlite3_column_text(stmt, 15) ?: "", sizeof(fee->other_date) - 1);
         fee->other_due = sqlite3_column_double(stmt, 16);
-        strcpy(fee->other_mode, (const char*)sqlite3_column_text(stmt, 17) ?: "");
+        strncpy(fee->other_mode, (const char*)sqlite3_column_text(stmt, 17) ?: "", sizeof(fee->other_mode) - 1);
         
         fee->total_paid = sqlite3_column_double(stmt, 18);
         fee->total_due = sqlite3_column_double(stmt, 19);
         fee->total_amount = sqlite3_column_double(stmt, 20);
-        strcpy(fee->created_at, (const char*)sqlite3_column_text(stmt, 21) ?: "");
-        strcpy(fee->updated_at, (const char*)sqlite3_column_text(stmt, 22) ?: "");
+        strncpy(fee->created_at, (const char*)sqlite3_column_text(stmt, 21) ?: "", sizeof(fee->created_at) - 1);
+        strncpy(fee->updated_at, (const char*)sqlite3_column_text(stmt, 22) ?: "", sizeof(fee->updated_at) - 1);
         fee->created_by = sqlite3_column_int(stmt, 23);
         fee->status = sqlite3_column_int(stmt, 24);
         
         sqlite3_finalize(stmt);
-        printf("[INFO] Fee record retrieved for roll_no: %d\n", roll_no);
+        printf("[INFO] Fee record retrieved for roll_no: %s\n", roll_no);
         return 1;
     }
     
     sqlite3_finalize(stmt);
-    printf("[INFO] No fee record found for roll_no: %d\n", roll_no);
+    printf("[INFO] No fee record found for roll_no: %s\n", roll_no);
     return 0;
 }
 
@@ -292,7 +307,10 @@ int db_update_fee_record(FeeRecord *fee) {
 // ============================================================================
 // DELETE FEE RECORD
 // ============================================================================
-int db_delete_fee_record(int roll_no) {
+// ✅ CORRECTED: Change parameter from int to const char*
+int db_delete_fee_record(const char *roll_no) {
+    if (!roll_no) return 0;
+    
     const char *sql = "DELETE FROM fees WHERE roll_no = ?";
     
     sqlite3_stmt *stmt;
@@ -304,7 +322,8 @@ int db_delete_fee_record(int roll_no) {
         return 0;
     }
     
-    sqlite3_bind_int(stmt, 1, roll_no);
+    // ✅ CORRECTED: Bind roll_no as TEXT, not int!
+    sqlite3_bind_text(stmt, 1, roll_no, -1, SQLITE_STATIC);
     rc = sqlite3_step(stmt);
     
     if (rc != SQLITE_DONE) {
@@ -315,56 +334,58 @@ int db_delete_fee_record(int roll_no) {
     }
     
     sqlite3_finalize(stmt);
-    printf("[SUCCESS] Fee record deleted for roll_no: %d\n", roll_no);
+    printf("[SUCCESS] Fee record deleted for roll_no: %s\n", roll_no);
     return 1;
 }
 
 // ============================================================================
-// GET STUDENT FOR ID CARD
+// GET STUDENT BY ROLL NUMBER (STRING SEARCH) - ADD THIS FUNCTION
 // ============================================================================
-int db_get_student_for_card(int roll_no, StudentIDCard *card) {
-    if (roll_no <= 0 || !card) {
-        printf("[ERROR] Invalid parameters in db_get_student_for_card\n");
+int db_get_student_for_card_by_roll(const char *roll_no, StudentIDCard *card) {
+    if (!roll_no || strlen(roll_no) == 0 || !card) {
+        fprintf(stderr, "[ERROR] Invalid input\n");
         return 0;
     }
-
-    const char *sql =
-        "SELECT student_id, roll_no, name, branch, mobile, email FROM students "
-        "WHERE roll_no = ?;";
-
+    
+    const char *sql = "SELECT student_id, roll_no, name, branch, gender, mobile, email "
+                      "FROM Students WHERE roll_no = ? LIMIT 1";
     sqlite3_stmt *stmt;
-    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
-
-    if (rc != SQLITE_OK) {
-        printf("[ERROR] Failed to prepare statement: %s\n", sqlite3_errmsg(db));
+    
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "[ERROR] Failed to prepare statement: %s\n", sqlite3_errmsg(db));
         return 0;
     }
-
-    sqlite3_bind_int(stmt, 1, roll_no);
-    rc = sqlite3_step(stmt);
-
-    if (rc == SQLITE_ROW) {
+    
+    sqlite3_bind_text(stmt, 1, roll_no, -1, SQLITE_STATIC);
+    
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
         card->student_id = sqlite3_column_int(stmt, 0);
-        card->roll_no = sqlite3_column_int(stmt, 1);
-
-        const char *name = (const char *)sqlite3_column_text(stmt, 2);
-        if (name) strncpy(card->name, name, sizeof(card->name) - 1);
-
-        const char *branch = (const char *)sqlite3_column_text(stmt, 3);
-        if (branch) strncpy(card->branch, branch, sizeof(card->branch) - 1);
-
-        const char *mobile = (const char *)sqlite3_column_text(stmt, 4);
-        if (mobile) strncpy(card->mobile, mobile, sizeof(card->mobile) - 1);
-
-        const char *email = (const char *)sqlite3_column_text(stmt, 5);
-        if (email) strncpy(card->email, email, sizeof(card->email) - 1);
-
+        const char *col_roll = (const char *)sqlite3_column_text(stmt, 1);
+        const char *col_name = (const char *)sqlite3_column_text(stmt, 2);
+        const char *col_branch = (const char *)sqlite3_column_text(stmt, 3);
+        const char *col_gender = (const char *)sqlite3_column_text(stmt, 4);
+        const char *col_mobile = (const char *)sqlite3_column_text(stmt, 5);
+        const char *col_email = (const char *)sqlite3_column_text(stmt, 6);
+        
+        strncpy(card->roll_no, col_roll ? col_roll : "", sizeof(card->roll_no) - 1);
+        card->roll_no[sizeof(card->roll_no) - 1] = '\0';
+        strncpy(card->name, col_name ? col_name : "", sizeof(card->name) - 1);
+        card->name[sizeof(card->name) - 1] = '\0';
+        strncpy(card->branch, col_branch ? col_branch : "", sizeof(card->branch) - 1);
+        card->branch[sizeof(card->branch) - 1] = '\0';
+        strncpy(card->gender, col_gender ? col_gender : "", sizeof(card->gender) - 1);
+        card->gender[sizeof(card->gender) - 1] = '\0';
+        strncpy(card->mobile, col_mobile ? col_mobile : "", sizeof(card->mobile) - 1);
+        card->mobile[sizeof(card->mobile) - 1] = '\0';
+        strncpy(card->email, col_email ? col_email : "", sizeof(card->email) - 1);
+        card->email[sizeof(card->email) - 1] = '\0';
+        
         sqlite3_finalize(stmt);
-        printf("[INFO] Student card data retrieved for roll_no: %d\n", roll_no);
+        printf("[SUCCESS] Student found by roll_no: %s\n", card->roll_no);
         return 1;
     }
-
+    
     sqlite3_finalize(stmt);
-    printf("[WARNING] Student with roll_no %d not found\n", roll_no);
+    printf("[WARNING] Student not found with roll_no: %s\n", roll_no);
     return 0;
 }

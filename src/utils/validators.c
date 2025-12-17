@@ -4,17 +4,20 @@
 #include "../../include/validators.h"
 //STUDENT VALIDATORS
 
-// ✅ ROLL NO: 1001-999999 (4-6 digits)
+// ✅ ROLL NO: 2_08400__000__ (13 digits)
 int validate_roll_no(const char *roll_no) {
-    if (!roll_no || strlen(roll_no) < 4 || strlen(roll_no) > 6) return 0;
-    
-    for (int i = 0; roll_no[i]; i++) {
-        if (!isdigit(roll_no[i])) return 0;
+    if (!roll_no) return 0;
+
+    // Exactly 13 digits
+    if (strlen(roll_no) != 13) return 0;
+
+    // All characters must be digits
+    for (int i = 0; i < 13; i++) {
+        if (!isdigit((unsigned char)roll_no[i])) return 0;
     }
-    
-    int num = atoi(roll_no);
-    return (num >= 1001 && num <= 999999);
+    return 1;
 }
+
 
 // Name: letters and spaces only, 3-100 characters
 int validate_name(const char *name) {
@@ -106,29 +109,16 @@ int validate_category(const char *category) {
 
 // Mobile: exactly 10 digits
 int validate_mobile(const char *mobile) {
-    if (mobile == NULL || strlen(mobile) == 0) {
-        return 0;
-    }
-    
-    // Must be exactly 10 characters
-    if (strlen(mobile) != 10) {
-        return 0;
-    }
-    
-    // First digit must be 6-9
-    if (mobile[0] < '6' || mobile[0] > '9') {
-        return 0;
-    }
-    
-    // All characters must be digits
+    if (mobile == NULL || strlen(mobile) != 10) return 0;
+
+    if (mobile[0] < '6' || mobile[0] > '9') return 0;
+
     for (int i = 0; i < 10; i++) {
-        if (!isdigit((unsigned char)mobile[i])) {
-            return 0;
-        }
+        if (!isdigit((unsigned char)mobile[i])) return 0;
     }
-    
     return 1;
 }
+
 
 // Email: standard format check (user@domain.com)
 int validate_email(const char *email) {

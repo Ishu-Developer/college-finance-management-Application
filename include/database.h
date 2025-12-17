@@ -27,18 +27,18 @@ typedef struct {
     int year;
     int semester;
     char category[20];
-    long long mobile;
+    char mobile[20];
     char email[100];
 } Student;
 
 int db_add_student(const char *name, const char *gender, const char *father_name, 
-                   const char *branch, int year, int semester, int roll_no, 
-                   const char *category, long long mobile, const char *email);
+                   const char *branch, int year, int semester, const char *roll_no, 
+                   const char *category, const char *mobile, const char *email);
 
 int db_get_student(int student_id, Student *student);
 sqlite3_stmt* db_get_all_students();
 sqlite3_stmt* db_get_students_by_branch(const char *branch);
-int db_search_student_by_rollno(int roll_no, Student *student);
+int db_search_student_by_rollno(const char *roll_no, Student *student);
 int db_edit_student(int student_id, const Student *student);
 int db_delete_student(int student_id);
 int db_get_student_count();
@@ -50,7 +50,7 @@ int db_get_student_count();
 // Student ID Card Structure (for fee_ui display)
 typedef struct {
     int student_id;
-    int roll_no;
+    char roll_no[14];
     char name[100];
     char father_name[100];
     char branch[50];
@@ -63,29 +63,29 @@ typedef struct {
 // Fee Record Structure (for fee form)
 typedef struct {
     int fee_id;
-    int roll_no;
+    char roll_no[14];   
     
     // Institute Fee
     double institute_paid;
-    char institute_date[11];       // YYYY-MM-DD
+    char institute_date[20];       // YYYY-MM-DD
     double institute_due;
     char institute_mode[20];       // DD / Cheque / Online
     
     // Hostel Fee (Optional)
     double hostel_paid;
-    char hostel_date[11];
+    char hostel_date[20];
     double hostel_due;
     char hostel_mode[20];
     
     // Mess Fee (Optional)
     double mess_paid;
-    char mess_date[11];
+    char mess_date[20];
     double mess_due;
     char mess_mode[20];
     
     // Other Charges (Optional)
     double other_paid;
-    char other_date[11];
+    char other_date[20];
     double other_due;
     char other_mode[20];
     
@@ -105,12 +105,12 @@ typedef struct {
  * FEE MANAGEMENT - CRUD OPERATIONS
  * ============================================================================ */
 
-int db_create_fee_table();
+int db_create_fee_table(void);
 int db_save_fee_record(FeeRecord *fee);
-int db_get_fee_record(int roll_no, FeeRecord *fee);
+int db_get_fee_record(const char *roll_no, FeeRecord *fee);      
 int db_update_fee_record(FeeRecord *fee);
-int db_delete_fee_record(int roll_no);
-int db_get_student_for_card(int roll_no, StudentIDCard *card);
+int db_delete_fee_record(const char *roll_no);                   
+int db_get_student_for_card_by_roll(const char *roll_no, StudentIDCard *card);
 
 /* ============================================================================
  * EMPLOYEE & PAYROLL STRUCTURES

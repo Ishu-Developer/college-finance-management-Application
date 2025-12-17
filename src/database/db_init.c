@@ -40,7 +40,7 @@ int db_create_tables() {
         // Students table
         "CREATE TABLE IF NOT EXISTS Students ("
         "  student_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "  roll_no INTEGER UNIQUE NOT NULL,"
+        "  roll_no TEXT UNIQUE NOT NULL,"
         "  name TEXT NOT NULL,"
         "  gender TEXT,"
         "  father_name TEXT,"
